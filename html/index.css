@@ -68,9 +68,60 @@ html, body {
 .model-settings-container, .add-lora-container, 
 .system-settings-container, .regional-condition-container,
 .jsonlist-container, .adetailer-container, .queue-container,
-.custom-toggles-container, .backgrounds-container
+.custom-toggles-container, .backgrounds-container, .character-editor-container
 {
     margin-top: 6px;
+}
+
+/* Add Character editor panel */
+.character-editor-main.collapsed { display: none; }
+.character-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 4px;
+}
+.character-editor-search, .character-editor-name, .character-editor-tag {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+}
+.character-editor-results {
+    display: flex;
+    flex-direction: column;
+    max-height: 180px;
+    overflow-y: auto;
+}
+.character-editor-result {
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+.character-editor-result:hover {
+    background: rgba(28, 224, 136, 0.2);
+}
+.character-editor-input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.character-editor-name { flex: 0 0 35%; }
+.character-editor-tag { flex: 1 1 auto; }
+.character-editor-add {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(28, 224, 136, 0.25);
+    color: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.character-editor-status {
+    font-size: 0.85em;
+    opacity: 0.8;
+    min-height: 1em;
 }
 
 /* Backgrounds editor panel */

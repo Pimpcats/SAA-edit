@@ -94,7 +94,98 @@ function setupCachedFiles(){
         return saveViewTags(viewTags);
     });
 
+    ipcMain.handle('search-character-tags', async (event, query, limit) => {
+        return searchCharacterTags(query, limit);
+    });
+
+    ipcMain.handle('append-character', async (event, displayName, tag) => {
+        return appendCharacter(displayName, tag);
+    });
+
     return thumb && language && characters && oc_characters && view_tags && character_tag_assist && loadingWait && loadingFailed && privacyBall;
+}
+
+// Lazily-loaded list of danbooru Character-category (4) tags, used by the
+// Add Character editor to search for valid character tags offline.
+let danbooruCharacters = null;
+
+function loadDanbooruCharacters() {
+    if (danbooruCharacters !== null) return danbooruCharacters;
+    danbooruCharacters = [];
+    const filePath = path.join(appPath, 'data', 'danbooru_e621_merged.csv');
+    if (!fs.existsSync(filePath)) {
+        console.warn(CAT, 'danbooru_e621_merged.csv not found; character search unavailable');
+        return danbooruCharacters;
+    }
+    try {
+        const raw = fs.readFileSync(filePath, 'utf8');
+        for (const line of raw.split('\n')) {
+            if (!line) continue;
+            // format: tag,category,postcount,"aliases"
+            const i1 = line.indexOf(',');
+            if (i1 === -1) continue;
+            const rest1 = line.slice(i1 + 1);
+            const i2 = rest1.indexOf(',');
+            if (i2 === -1) continue;
+            const category = rest1.slice(0, i2);
+            if (category !== '4') continue;
+            const tag = line.slice(0, i1);
+            const rest2 = rest1.slice(i2 + 1);
+            const i3 = rest2.indexOf(',');
+            const count = i3 === -1 ? rest2 : rest2.slice(0, i3);
+            const aliases = i3 === -1 ? '' : rest2.slice(i3 + 1).replaceAll('"', '');
+            danbooruCharacters.push({ tag, count: Number(count) || 0, aliases });
+        }
+        danbooruCharacters.sort((a, b) => b.count - a.count);
+        console.log(CAT, `Loaded ${danbooruCharacters.length} danbooru character tags`);
+    } catch (err) {
+        console.error(CAT, `Failed to load danbooru characters: ${err.message}`);
+    }
+    return danbooruCharacters;
+}
+
+function searchCharacterTags(query, limit = 30) {
+    const list = loadDanbooruCharacters();
+    const q = (query || '').trim().toLowerCase().replaceAll(' ', '_');
+    if (q === '') return [];
+    const results = [];
+    for (const entry of list) {
+        if (entry.tag.includes(q) || (entry.aliases && entry.aliases.toLowerCase().includes(q))) {
+            results.push({
+                tag: entry.tag,
+                displayTag: entry.tag.replaceAll('_', ' '),
+                count: entry.count,
+                aliases: entry.aliases
+            });
+            if (results.length >= limit) break;
+        }
+    }
+    return results;
+}
+
+function appendCharacter(displayName, tag) {
+    let name = (displayName || '').trim().replaceAll(/[\r\n,]/g, ' ').trim();
+    const value = (tag || '').trim().replaceAll(/[\r\n,]/g, ' ').trim();
+    if (name === '') name = value;
+    if (value === '') {
+        console.error(CAT, 'appendCharacter: empty tag');
+        return false;
+    }
+    if (Object.hasOwn(cachedCharacter, name)) {
+        console.warn(CAT, `Character "${name}" already exists; not appending`);
+        return false;
+    }
+    const filePath = path.join(appPath, 'data', 'wai_characters.csv');
+    try {
+        const prefix = fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf8').endsWith('\n') ? '' : '\n';
+        fs.appendFileSync(filePath, `${prefix}${name},${value}\n`, 'utf8');
+        cachedCharacter[name] = value;
+        console.log(CAT, `Appended character: ${name} => ${value}`);
+        return true;
+    } catch (err) {
+        console.error(CAT, `Failed to append character: ${err.message}`);
+        return false;
+    }
 }
 
 function saveViewTags(viewTags) {
@@ -158,5 +249,7 @@ export {
     getCachedFiles,
     getCachedFilesWithoutThumb,
     getCharacterThumb,
-    saveViewTags
+    saveViewTags,
+    searchCharacterTags,
+    appendCharacter
 };

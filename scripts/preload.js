@@ -92,6 +92,8 @@ contextBridge.exposeInMainWorld('api', {
   // cachedFiles
   getCachedFiles: async () => ipcRenderer.invoke('get-cached-files'),
   saveViewTags: async (viewTags) => ipcRenderer.invoke('save-view-tags', viewTags),
+  searchCharacterTags: async (query, limit) => ipcRenderer.invoke('search-character-tags', query, limit),
+  appendCharacter: async (displayName, tag) => ipcRenderer.invoke('append-character', displayName, tag),
   // downloadFiles
   downloadURL: async () => ipcRenderer.invoke('download-url', url, filePath),
   // modelList

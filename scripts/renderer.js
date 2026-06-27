@@ -27,6 +27,7 @@ import { setupRightClickMenu, addSpellCheckSuggestions } from './renderer/compon
 import { setupAutoInfinite } from './renderer/autoInfinite.js';
 import { setupCustomToggles } from './renderer/customToggles.js';
 import { setupBackgroundsEditor } from './renderer/backgroundsEditor.js';
+import { setupCharacterEditor } from './renderer/characterEditor.js';
 import { extractHostPort } from './renderer/generate.js';
 
 function afterDOMinit() {
@@ -126,6 +127,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         queueManager: setupCollapsed('queue', false),
         customToggles: setupCollapsed('custom-toggles', true),
         backgrounds: setupCollapsed('backgrounds', true),
+        characterEditor: setupCollapsed('character-editor', true),
     }
 }
 
@@ -497,6 +499,9 @@ async function init(){
 
         // Backgrounds editor
         globalThis.backgroundsEditor = setupBackgroundsEditor('backgrounds-main');
+
+        // Add Character editor
+        globalThis.characterEditor = setupCharacterEditor('character-editor-main');
 
         // aDetailer
         globalThis.aDetailer = setupADetailer('adetailer-main');
