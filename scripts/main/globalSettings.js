@@ -85,6 +85,7 @@ const defaultSettings = {
     "multi_char_emphasis_tag": "2girls",
 
     "custom_toggles": [],
+    "civitai_api_key": "",
 
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "meta-llama/llama-4-maverick-17b-128e-instruct",

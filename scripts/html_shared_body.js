@@ -368,6 +368,18 @@ export const sharedBodyHTML = `
             <div class="character-editor-main"></div>
           </div>
 
+          <div class="lora-library-container">
+            <div class="lora-library-header">
+              <div></div>
+              <div></div>
+              <div class="lora-library-header-span">
+                <span id="lora-library-span">LoRA Library</span>
+                <img id="lora-library-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="lora-library-main"></div>
+          </div>
+
         </div>
       </div>
     </div>`;

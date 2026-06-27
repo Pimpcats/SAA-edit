@@ -18,6 +18,7 @@ import { setupModelApi } from './scripts/main/remoteAI_backend.js';
 import { setupGenerateBackendComfyUI, sendToRenderer } from './scripts/main/generate_backend_comfyui.js';
 import { setupGenerateBackendWebUI } from './scripts/main/generate_backend_webui.js';
 import { setupCachedFiles } from './scripts/main/cachedFiles.js';
+import { setupCivitai } from './scripts/main/civitai.js';
 import { setupWildcardsHandlers } from './scripts/main/wildCards.js';
 import { setupTagger } from './scripts/main/imageTagger.js';
 
@@ -81,6 +82,7 @@ async function initializeApp() {
   setupModelList(SETTINGS);
   const downloadSuccess = await setupDownloadFiles();
   const cacheSuccess = setupCachedFiles();
+  setupCivitai();
 
   // Ensure wildcards list are set up before tag auto-complete
   setupWildcardsHandlers();

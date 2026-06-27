@@ -68,9 +68,108 @@ html, body {
 .model-settings-container, .add-lora-container, 
 .system-settings-container, .regional-condition-container,
 .jsonlist-container, .adetailer-container, .queue-container,
-.custom-toggles-container, .backgrounds-container, .character-editor-container
+.custom-toggles-container, .backgrounds-container, .character-editor-container, .lora-library-container
 {
     margin-top: 6px;
+}
+
+/* LoRA Library panel */
+.lora-library-main.collapsed { display: none; }
+.lora-library {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 4px;
+}
+.lora-library-key, .lora-library-filter {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+}
+.lora-library-controls { display: flex; gap: 6px; }
+.lora-library-filter { flex: 1 1 auto; }
+.lora-library-scan {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(28, 224, 136, 0.25);
+    color: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.lora-library-list { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; }
+.lora-library-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.lora-library-row:hover { background: rgba(28, 224, 136, 0.15); }
+.lora-library-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lora-library-status { font-size: 0.8em; opacity: 0.85; white-space: nowrap; }
+.lora-library-status.ok { color: #1ce088; }
+.lora-library-status.none { opacity: 0.5; }
+.lora-library-status.err { color: #e74c3c; }
+
+/* LoRA gallery overlay */
+.lora-gallery-overlay {
+    position: fixed;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80vw;
+    max-width: 1100px;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: rgba(17, 17, 17, 0.97);
+    border: 2px solid #333;
+    border-radius: 10px;
+    z-index: 10050;
+    padding: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.lora-gallery-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    position: sticky;
+    top: 0;
+}
+.lora-gallery-title { font-weight: bold; color: #3498db; text-decoration: none; }
+.lora-gallery-hint { font-size: 0.85em; opacity: 0.7; flex: 1 1 auto; }
+.lora-gallery-close {
+    width: 28px; height: 28px;
+    border: none; border-radius: 8px;
+    background: rgba(120, 120, 120, 0.3);
+    color: inherit; cursor: pointer;
+}
+.lora-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+.lora-gallery-cell { position: relative; }
+.lora-gallery-cell img {
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+    cursor: context-menu;
+}
+.lora-gallery-badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    background: rgba(28, 224, 136, 0.9);
+    color: #111;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    font-weight: bold;
 }
 
 /* Add Character editor panel */

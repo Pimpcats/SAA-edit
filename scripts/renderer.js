@@ -28,6 +28,7 @@ import { setupAutoInfinite } from './renderer/autoInfinite.js';
 import { setupCustomToggles } from './renderer/customToggles.js';
 import { setupBackgroundsEditor } from './renderer/backgroundsEditor.js';
 import { setupCharacterEditor } from './renderer/characterEditor.js';
+import { setupLoraLibrary } from './renderer/loraLibrary.js';
 import { extractHostPort } from './renderer/generate.js';
 
 function afterDOMinit() {
@@ -128,6 +129,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         customToggles: setupCollapsed('custom-toggles', true),
         backgrounds: setupCollapsed('backgrounds', true),
         characterEditor: setupCollapsed('character-editor', true),
+        loraLibrary: setupCollapsed('lora-library', true),
     }
 }
 
@@ -502,6 +504,9 @@ async function init(){
 
         // Add Character editor
         globalThis.characterEditor = setupCharacterEditor('character-editor-main');
+
+        // LoRA library browser (civitai)
+        globalThis.loraLibrary = setupLoraLibrary('lora-library-main');
 
         // aDetailer
         globalThis.aDetailer = setupADetailer('adetailer-main');
