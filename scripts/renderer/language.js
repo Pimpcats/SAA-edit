@@ -311,6 +311,9 @@ export function updateSettings() {
     globalThis.prompt.ai.setValue(SETTINGS.ai_prompt);
     globalThis.prompt.exclude.setValue(SETTINGS.prompt_ban);
 
+    globalThis.multiCharEmphasis.enable.setValue(SETTINGS.multi_char_emphasis_enable);
+    globalThis.multiCharEmphasis.tag.setValue(SETTINGS.multi_char_emphasis_tag);
+
     globalThis.ai.interface.updateDefaults(SETTINGS.ai_interface);
     globalThis.ai.local_address.setValue(SETTINGS.ai_local_addr);
     globalThis.ai.local_temp.setValue(SETTINGS.ai_local_temp);

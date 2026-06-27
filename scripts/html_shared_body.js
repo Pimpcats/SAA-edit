@@ -55,6 +55,11 @@ export const sharedBodyHTML = `
       <div class="dropdown-character"></div>
       <div class="dropdown-character-regional"></div>
 
+      <div class="multi-char-emphasis-row">
+        <div class="multi-char-emphasis-enable"></div>
+        <div class="multi-char-emphasis-tag"></div>
+      </div>
+
       <div id="split">
         <div id="left">
           <div id="generate-settings-static-left">

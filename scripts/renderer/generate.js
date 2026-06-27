@@ -269,21 +269,33 @@ async function getCharacters(){
     let information = '';
     let thumbImages = [];
     let characters = '';
+    let selectedCount = 0;
     for(let index=0; index < 4; index++) {
         let {tag, tag_assist, thumb, info, weight, characterName} = await createCharacters(index, seeds);
+        if(tag !== '') selectedCount++;
         if(weight === 1){
             character += (tag === '')?'':`${tag}, `;
         } else {
-            character += (tag === '')?'':`(${tag}:${weight}), `;            
+            character += (tag === '')?'':`(${tag}:${weight}), `;
         }
         character += tag_assist;
 
-        if (thumb) {            
+        if (thumb) {
             thumbImages.push(thumb);
         }
         information += `${info}`;
         if(characterName)
             characters += (characters.length>0)?`\n${characterName}`:`${characterName}`;
+    }
+
+    // Emphasize multiple characters: prepend a user-configured count tag
+    // (e.g. "2girls", "1girl 1boy", "2boys") when 2+ characters are selected.
+    const SETTINGS = globalThis.globalSettings;
+    if (SETTINGS.multi_char_emphasis_enable && selectedCount >= 2) {
+        const emphasis = (SETTINGS.multi_char_emphasis_tag || '').trim().replace(/,+$/, '').trim();
+        if (emphasis !== '') {
+            character = `${emphasis}, ${character}`;
+        }
     }
 
     information += `Seed: [[color=${brownColor}]${seeds[0]}[/color]]\n`;

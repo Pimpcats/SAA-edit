@@ -80,7 +80,10 @@ const defaultSettings = {
     "api_neg_prompt": "bad quality,worst quality,worst detail,sketch,censor",
     "ai_prompt": "",
     "prompt_ban" : "",
-    
+
+    "multi_char_emphasis_enable": false,
+    "multi_char_emphasis_tag": "2girls",
+
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
     "remote_ai_api_key":"<Your API Key here>",

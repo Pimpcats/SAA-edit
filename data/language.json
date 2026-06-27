@@ -206,6 +206,8 @@
         "image_info_send_all": "Paste All",
         "auto_infinite_on": "Auto-generate (infinite)",
         "auto_infinite_off": "Turn off auto-generate",
+        "multi_char_emphasis": "Emphasize multiple characters",
+        "multi_char_emphasis_tag": "Multi-character tag (e.g. 2girls, 1girl 1boy, 2boys)",
         "image_info_copy_metadata": "Copy Metadata",
         "image_info_copy_metadata_copied": "Copied",
         "image_info_show_metadata_buttons": "Show Metadata",

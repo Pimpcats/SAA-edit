@@ -302,6 +302,16 @@ export async function createPrompt(SETTINGS, FILES, LANG) {
             maxLines: 5
             }, false, (value) => { globalThis.globalSettings.prompt_ban = value; })
     }
+
+    globalThis.multiCharEmphasis = {
+        enable: setupCheckbox('multi-char-emphasis-enable', LANG.multi_char_emphasis, SETTINGS.multi_char_emphasis_enable, true,
+            (value) => { globalThis.globalSettings.multi_char_emphasis_enable = value; }),
+        tag: setupTextbox('multi-char-emphasis-tag', LANG.multi_char_emphasis_tag, {
+            value: SETTINGS.multi_char_emphasis_tag,
+            maxLines: 1
+            }, false, (value) => { globalThis.globalSettings.multi_char_emphasis_tag = value; })
+    };
+
     console.log('Creating setupSuggestionSystem');
     setupSuggestionSystem();
 }
