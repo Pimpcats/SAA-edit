@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=SAA-edit
+Comment=Wai Character Select Stand Alone App (edited)
+# Edit the path below to where you cloned the repo:
+Exec=/home/USER/saa-edit/start-saa.sh
+Path=/home/USER/saa-edit
+Terminal=true
+Categories=Graphics;Utility;
