@@ -133,6 +133,59 @@ export function setupLoraLibrary(containerId) {
         results.appendChild(section);
     }
 
+    // ---- Folder tree (navigate LoRAs by their folder hierarchy) ----
+    function buildTree(names) {
+        const root = { folders: {}, files: [] };
+        for (const name of names) {
+            const parts = name.split(/[/\\]/);
+            let node = root;
+            for (let i = 0; i < parts.length - 1; i++) {
+                const p = parts[i];
+                node.folders[p] = node.folders[p] || { folders: {}, files: [] };
+                node = node.folders[p];
+            }
+            node.files.push({ name, label: parts[parts.length - 1] });
+        }
+        return root;
+    }
+
+    function renderTree(node, el, depth) {
+        for (const fname of Object.keys(node.folders).sort((a, b) => a.localeCompare(b))) {
+            const header = document.createElement('div');
+            header.className = 'lora-tree-folder-header';
+            header.style.paddingLeft = `${depth * 12}px`;
+            header.textContent = `▸ ${fname}`;
+            const childWrap = document.createElement('div');
+            childWrap.style.display = 'none';
+            let open = false;
+            header.addEventListener('click', () => {
+                open = !open;
+                childWrap.style.display = open ? 'block' : 'none';
+                header.textContent = `${open ? '▾' : '▸'} ${fname}`;
+            });
+            el.appendChild(header);
+            renderTree(node.folders[fname], childWrap, depth + 1);
+            el.appendChild(childWrap);
+        }
+        for (const f of node.files.sort((a, b) => a.label.localeCompare(b.label))) {
+            const leaf = document.createElement('div');
+            leaf.className = 'lora-tree-leaf';
+            leaf.style.paddingLeft = `${depth * 12 + 14}px`;
+            leaf.textContent = f.label;
+            leaf.addEventListener('click', async () => {
+                leaf.style.opacity = '0.5';
+                const res = await lookup(f.name).catch(err => ({ ok: false, error: err.message }));
+                leaf.style.opacity = '1';
+                if (res && res.ok && res.found && res.images.length) {
+                    appendResult(res);
+                } else {
+                    setStatus(`${f.label}: ${res && res.error ? res.error : (res && !res.found ? 'no civitai match' : 'no images')}`);
+                }
+            });
+            el.appendChild(leaf);
+        }
+    }
+
     // ---- Panel UI ----
     container.innerHTML = '';
     container.classList.add('lora-library');
@@ -185,14 +238,32 @@ export function setupLoraLibrary(containerId) {
 
     const controls = document.createElement('div');
     controls.className = 'lora-library-controls';
+    const browseBtn = document.createElement('button');
+    browseBtn.className = 'lora-library-scan';
+    browseBtn.textContent = getLang().lora_library_browse || 'Browse folders';
     const scanBtn = document.createElement('button');
     scanBtn.className = 'lora-library-scan';
     scanBtn.textContent = getLang().lora_library_scan || 'Scan all';
     const refreshBtn = document.createElement('button');
     refreshBtn.className = 'lora-library-scan';
     refreshBtn.textContent = getLang().lora_library_refresh || 'Refresh list';
+    controls.appendChild(browseBtn);
     controls.appendChild(scanBtn);
     controls.appendChild(refreshBtn);
+
+    const treeContainer = document.createElement('div');
+    treeContainer.className = 'lora-library-tree';
+    treeContainer.style.display = 'none';
+
+    function rebuildTree() {
+        treeContainer.innerHTML = '';
+        renderTree(buildTree(loraNames()), treeContainer, 0);
+    }
+    browseBtn.addEventListener('click', () => {
+        const show = treeContainer.style.display === 'none';
+        treeContainer.style.display = show ? 'block' : 'none';
+        if (show && treeContainer.childElementCount === 0) rebuildTree();
+    });
 
     const status = document.createElement('div');
     status.className = 'lora-library-status-line';
@@ -215,6 +286,7 @@ export function setupLoraLibrary(containerId) {
         }
         const n = loraNames().length;
         setStatus((getLang().lora_library_count || '{0} LoRAs found.').replace('{0}', n));
+        if (treeContainer.style.display !== 'none') rebuildTree();
     }
 
     async function scanAll() {
@@ -250,6 +322,7 @@ export function setupLoraLibrary(containerId) {
     container.appendChild(keyRow);
     container.appendChild(controls);
     container.appendChild(status);
+    container.appendChild(treeContainer);
     container.appendChild(results);
 
     setStatus((getLang().lora_library_count || '{0} LoRAs found.').replace('{0}', loraNames().length));

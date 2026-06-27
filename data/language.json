@@ -250,6 +250,7 @@
         "lora_library_not_found_local": "file?",
         "lora_library_error": "error",
         "lora_library_refresh": "Refresh list",
+        "lora_library_browse": "Browse folders",
         "lora_library_test": "Test",
         "lora_library_saved": "Saved ✓",
         "lora_library_testing": "Testing…",
