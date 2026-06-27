@@ -472,7 +472,23 @@ function createDropdown({
         isValueOnly: function() {
             return valueOnly;
         },
-        
+
+        // Swap the selection (and weight) of two slots, e.g. swapSlots(0, 3).
+        swapSlots: function(i, j) {
+            if (i === j || i < 0 || j < 0 || i >= dropdownCount || j >= dropdownCount) return;
+            [selectedKeys[i], selectedKeys[j]] = [selectedKeys[j], selectedKeys[i]];
+            [selectedValues[i], selectedValues[j]] = [selectedValues[j], selectedValues[i]];
+            if (inputs[i] && inputs[j]) {
+                inputs[i].value = valueOnly ? selectedValues[i] : selectedKeys[i];
+                inputs[j].value = valueOnly ? selectedValues[j] : selectedKeys[j];
+            }
+            if (enableNumberInput && numberInputs[i] && numberInputs[j]) {
+                const w = numberInputs[i].value;
+                numberInputs[i].value = numberInputs[j].value;
+                numberInputs[j].value = w;
+            }
+        },
+
         cleanup: function() {
             document.removeEventListener('click', this._clickHandler);
             document.removeEventListener('scroll', this._scrollHandler, true);

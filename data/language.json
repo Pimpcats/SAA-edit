@@ -206,6 +206,8 @@
         "image_info_send_all": "Paste All",
         "auto_infinite_on": "Auto-generate (infinite)",
         "auto_infinite_off": "Turn off auto-generate",
+        "character_swap": "Swap slots:",
+        "character_swap_btn": "Swap",
         "multi_char_emphasis": "Emphasize multiple characters",
         "multi_char_emphasis_tag": "Multi-character tag (e.g. 2girls, 1girl 1boy, 2boys)",
         "custom_toggles_title": "Custom Toggles",

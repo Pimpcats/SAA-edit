@@ -335,6 +335,31 @@ html, body {
     padding: 4px;
 }
 
+/* Character slot swap */
+.character-swap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 10px;
+    font-size: 0.9em;
+}
+.character-swap-select {
+    padding: 3px 6px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: rgba(0,0,0,0.2);
+    color: inherit;
+}
+.character-swap-arrow { opacity: 0.7; }
+.character-swap-btn {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(28, 224, 136, 0.25);
+    color: inherit;
+    cursor: pointer;
+}
+
 /* Custom Toggles panel */
 .custom-toggles-main.collapsed { display: none; }
 .custom-toggles-list {

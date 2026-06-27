@@ -29,6 +29,7 @@ import { setupCustomToggles } from '../scripts/renderer/customToggles.js';
 import { setupBackgroundsEditor } from '../scripts/renderer/backgroundsEditor.js';
 import { setupCharacterEditor } from '../scripts/renderer/characterEditor.js';
 import { setupLoraLibrary } from '../scripts/renderer/loraLibrary.js';
+import { setupCharacterSwap } from '../scripts/renderer/characterSwap.js';
 import { initWebSocket, isSecuredConnection, sendWebSocketMessage, registerCallback } from './front/wsRequest.js';
 
 // Run the init function when the DOM is fully loaded
@@ -544,6 +545,9 @@ async function init() {
 
         // LoRA library browser (civitai)
         globalThis.loraLibrary = setupLoraLibrary('lora-library-main');
+
+        // Character slot swap
+        globalThis.characterSwap = setupCharacterSwap('character-swap-row');
 
         // aDetailer
         globalThis.aDetailer = setupADetailer('adetailer-main');
