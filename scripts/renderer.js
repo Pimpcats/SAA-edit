@@ -24,6 +24,7 @@ import { setBlur, setNormal, showDialog } from './renderer/components/myDialog.j
 import { setupImageUploadOverlay } from './renderer/imageInfo.js';
 import { setupThemeToggle } from './renderer/theme.js';
 import { setupRightClickMenu, addSpellCheckSuggestions } from './renderer/components/myRightClickMenu.js';
+import { setupAutoInfinite } from './renderer/autoInfinite.js';
 import { extractHostPort } from './renderer/generate.js';
 
 function afterDOMinit() {
@@ -504,8 +505,11 @@ async function init(){
         // globalThis.rightClick
         setupRightClickMenu();
 
+        // Infinite auto-generate (right-click the Create Image button)
+        setupAutoInfinite();
+
         // Done
-        globalThis.initialized = true;        
+        globalThis.initialized = true;
         if(SETTINGS.setup_wizard) {
             globalThis.globalSettings.setup_wizard = false;
             await setupWizard();

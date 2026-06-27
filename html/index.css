@@ -125,6 +125,11 @@ html, body {
     mask-size: contain;
 }
 
+/* Highlight the Create Image button while infinite auto-generate is active */
+.auto-infinite-active {
+    box-shadow: 0 0 0 2px #1ce088, 0 0 10px #1ce088 !important;
+}
+
 #model-refresh-icon {
     -webkit-mask: url('../scripts/svg/reload.svg') no-repeat center;
     mask: url('../scripts/svg/reload.svg') no-repeat center;

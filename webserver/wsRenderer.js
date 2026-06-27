@@ -24,6 +24,7 @@ import { setBlur, setNormal, showDialog } from '../scripts/renderer/components/m
 import { setupImageUploadOverlay } from '../scripts/renderer/imageInfo.js';
 import { setupThemeToggle } from '../scripts/renderer/theme.js';
 import { setupRightClickMenu } from '../scripts/renderer/components/myRightClickMenu.js';
+import { setupAutoInfinite } from '../scripts/renderer/autoInfinite.js';
 import { initWebSocket, isSecuredConnection, sendWebSocketMessage, registerCallback } from './front/wsRequest.js';
 
 // Run the init function when the DOM is fully loaded
@@ -541,8 +542,11 @@ async function init() {
         // globalThis.rightClick
         setupRightClickMenu();
 
+        // Infinite auto-generate (right-click the Create Image button)
+        setupAutoInfinite();
+
         // Done
-        globalThis.initialized = true;        
+        globalThis.initialized = true;
         
         doSwap(globalThis.globalSettings.rightToleft);   //default is right to left        
         updateLanguage(false, globalThis.inBrowser); 

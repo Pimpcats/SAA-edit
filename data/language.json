@@ -204,6 +204,8 @@
         "image_info_send_prompts": "Paste Prompts",
         "image_info_send_settings": "Paste Settings",
         "image_info_send_all": "Paste All",
+        "auto_infinite_on": "Auto-generate (infinite)",
+        "auto_infinite_off": "Turn off auto-generate",
         "image_info_copy_metadata": "Copy Metadata",
         "image_info_copy_metadata_copied": "Copied",
         "image_info_show_metadata_buttons": "Show Metadata",
