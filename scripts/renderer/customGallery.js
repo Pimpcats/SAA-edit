@@ -1,4 +1,7 @@
 import { customCommonOverlay, addDragFunctionality } from './customOverlay.js';
+import { parseGenerationParameters } from './components/imageInfoMetadata.js';
+import { applyImageSettings } from './applyImageSettings.js';
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 function setupScrollableContainer(container) {
     let isDragging = false, startX, scrollLeft;
@@ -501,7 +504,6 @@ export function setupGallery(containerId) {
                 currentIndex = images.length - 1;
                 isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
             }, 'cg-switch-mode-button', images.length);
-            ensurePrivacyButton();
         };
         firstImage.onerror = () => {
             console.error('Failed to load latest image for grid mode');
@@ -620,7 +622,7 @@ export function setupGallery(containerId) {
         }, 'cg-switch-mode-button', images.length);
         ensureSeedButton();
         ensureTagButton();
-        ensurePrivacyButton();
+        ensureSendButton();
         adjustPreviewContainer(previewContainer);
     }
     
@@ -712,5 +714,49 @@ export function setupGallery(containerId) {
             });
             container.appendChild(tagButton);
         }
+    }
+
+    function ensureSendButton() {
+        let sendButton = document.getElementById('cg-send-button');
+        if (sendButton) return;
+        const LANG = globalThis.cachedFiles.language[globalThis.globalSettings.language];
+        const label = LANG.gallery_send_settings || 'Send';
+        sendButton = document.createElement('button');
+        sendButton.id = 'cg-send-button';
+        sendButton.className = 'cg-button';
+        sendButton.textContent = label;
+        sendButton.title = LANG.gallery_send_settings_title || 'Apply all settings from this image';
+        sendButton.addEventListener('click', async () => {
+            const base64 = images[currentIndex];
+            if (!base64) return;
+            try {
+                let result;
+                if (globalThis.inBrowser) {
+                    result = await sendWebSocketMessage({ type: 'API', method: 'readBase64Image', params: [base64] });
+                } else {
+                    result = await globalThis.api.readBase64Image(base64);
+                }
+                const md = { fileName: 'gallery', fileType: 'image/png', generationParameters: result?.metadata };
+                const parsed = parseGenerationParameters(md);
+                const hasEmbedded = parsed.positivePrompt || parsed.otherParams;
+                if (hasEmbedded) {
+                    applyImageSettings(parsed, 'all');
+                } else {
+                    // Fall back to the prompt + seed the gallery already stored.
+                    if (tags?.[currentIndex]) globalThis.prompt.common.setValue(tags[currentIndex].trim());
+                    if (seeds?.[currentIndex] !== undefined) {
+                        const s = Number.parseInt(seeds[currentIndex]);
+                        if (!Number.isNaN(s)) globalThis.generate.seed.setValue(s);
+                    }
+                }
+                sendButton.textContent = LANG.gallery_send_settings_done || 'Sent!';
+            } catch (err) {
+                console.error('[gallery] send settings failed:', err);
+                sendButton.textContent = 'Failed!';
+            } finally {
+                setTimeout(() => { sendButton.textContent = label; }, 2000);
+            }
+        });
+        container.appendChild(sendButton);
     }
 }

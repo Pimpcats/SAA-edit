@@ -414,6 +414,13 @@ html, body {
     box-shadow: 0 0 0 2px #1ce088, 0 0 10px #1ce088 !important;
 }
 
+/* Gallery "Send all settings" button (below Seed/Tags) */
+#cg-send-button {
+    right: 10px;
+    top: 90px;
+    background: #27ae60;
+}
+
 #model-refresh-icon {
     -webkit-mask: url('../scripts/svg/reload.svg') no-repeat center;
     mask: url('../scripts/svg/reload.svg') no-repeat center;
