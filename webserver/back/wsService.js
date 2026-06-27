@@ -15,7 +15,7 @@ import { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, s
     updateMiraITUSettingFiles, loadMiraITUSettings, saveMiraITUSettings
  } from '../../scripts/main/globalSettings.js';
 import { getCachedFilesWithoutThumb, getCharacterThumb, saveViewTags, searchCharacterTags, appendCharacter } from '../../scripts/main/cachedFiles.js';
-import { civitaiLookupLora } from '../../scripts/main/civitai.js';
+import { civitaiLookupLora, civitaiTestKey } from '../../scripts/main/civitai.js';
 import { getModelList, getModelListAll, getVAEList, getDiffusionModelList, getTextEncoderList,
     getLoRAList, getImageTaggerModels, updateModelAndLoRAList, getControlNetList,
     getUpscalerList, getADetailerList, getONNXList } from '../../scripts/main/modelList.js';
@@ -386,6 +386,7 @@ const methodHandlers = {
   'searchCharacterTags': (params)=> searchCharacterTags(...params),
   'appendCharacter': (params)=> appendCharacter(...params),
   'civitaiLookupLora': (params)=> civitaiLookupLora(...params),
+  'civitaiTestKey': (params)=> civitaiTestKey(...params),
 
   // fileHandlers
   'readFile': (params)=> loadFile(...params),

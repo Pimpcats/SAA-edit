@@ -95,6 +95,7 @@ contextBridge.exposeInMainWorld('api', {
   searchCharacterTags: async (query, limit) => ipcRenderer.invoke('search-character-tags', query, limit),
   appendCharacter: async (displayName, tag) => ipcRenderer.invoke('append-character', displayName, tag),
   civitaiLookupLora: async (loraName, apiInterface, apiKey) => ipcRenderer.invoke('civitai-lookup-lora', loraName, apiInterface, apiKey),
+  civitaiTestKey: async (apiKey) => ipcRenderer.invoke('civitai-test-key', apiKey),
   // downloadFiles
   downloadURL: async () => ipcRenderer.invoke('download-url', url, filePath),
   // modelList

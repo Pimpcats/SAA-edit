@@ -132,14 +132,51 @@ export function setupLoraLibrary(containerId) {
     container.innerHTML = '';
     container.classList.add('lora-library');
 
+    const keyRow = document.createElement('div');
+    keyRow.className = 'lora-library-key-row';
     const keyInput = document.createElement('input');
     keyInput.type = 'password';
     keyInput.className = 'lora-library-key';
     keyInput.placeholder = getLang().lora_library_api_key || 'Civitai API Key (optional)';
     keyInput.value = globalThis.globalSettings.civitai_api_key || '';
+    const testBtn = document.createElement('button');
+    testBtn.className = 'lora-library-scan';
+    testBtn.textContent = getLang().lora_library_test || 'Test';
+    const keyStatus = document.createElement('span');
+    keyStatus.className = 'lora-library-keystatus';
+    keyStatus.textContent = '●';
+
     keyInput.addEventListener('change', () => {
         globalThis.globalSettings.civitai_api_key = keyInput.value.trim();
+        keyStatus.className = 'lora-library-keystatus saved';
+        keyStatus.textContent = getLang().lora_library_saved || 'Saved ✓';
     });
+    testBtn.addEventListener('click', async () => {
+        globalThis.globalSettings.civitai_api_key = keyInput.value.trim();
+        keyStatus.className = 'lora-library-keystatus';
+        keyStatus.textContent = getLang().lora_library_testing || 'Testing…';
+        let res;
+        try {
+            if (globalThis.inBrowser) {
+                res = await sendWebSocketMessage({ type: 'API', method: 'civitaiTestKey', params: [keyInput.value.trim()] });
+            } else {
+                res = await globalThis.api.civitaiTestKey(keyInput.value.trim());
+            }
+        } catch (err) {
+            res = { ok: false, error: err.message };
+        }
+        if (res && res.ok) {
+            keyStatus.className = 'lora-library-keystatus ok';
+            keyStatus.textContent = getLang().lora_library_connected || 'Connected ✓';
+        } else {
+            keyStatus.className = 'lora-library-keystatus err';
+            keyStatus.textContent = (getLang().lora_library_test_failed || 'Failed ✗')
+                + (res?.status ? ` (${res.status})` : '');
+        }
+    });
+    keyRow.appendChild(keyInput);
+    keyRow.appendChild(testBtn);
+    keyRow.appendChild(keyStatus);
 
     const controls = document.createElement('div');
     controls.className = 'lora-library-controls';
@@ -204,7 +241,7 @@ export function setupLoraLibrary(containerId) {
     scanBtn.addEventListener('click', scanAll);
     refreshBtn.addEventListener('click', refreshLoraList);
 
-    container.appendChild(keyInput);
+    container.appendChild(keyRow);
     container.appendChild(controls);
     container.appendChild(status);
     container.appendChild(results);

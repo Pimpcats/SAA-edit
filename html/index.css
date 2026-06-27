@@ -88,6 +88,12 @@ html, body {
     background: rgba(0, 0, 0, 0.2);
     color: inherit;
 }
+.lora-library-key-row { display: flex; gap: 6px; align-items: center; }
+.lora-library-key-row .lora-library-key { flex: 1 1 auto; }
+.lora-library-keystatus { font-size: 0.8em; white-space: nowrap; opacity: 0.6; }
+.lora-library-keystatus.saved { color: #1ce088; opacity: 1; }
+.lora-library-keystatus.ok { color: #1ce088; opacity: 1; }
+.lora-library-keystatus.err { color: #e74c3c; opacity: 1; }
 .lora-library-controls { display: flex; gap: 6px; }
 .lora-library-filter { flex: 1 1 auto; }
 .lora-library-scan {

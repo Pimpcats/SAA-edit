@@ -141,10 +141,25 @@ async function civitaiLookupLora(loraName, apiInterface, apiKey) {
     }
 }
 
+// Quick connectivity / key check against the civitai API.
+async function civitaiTestKey(apiKey) {
+    try {
+        const headers = {};
+        if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+        const resp = await fetch(`${CIVITAI_BASE}/api/v1/models?limit=1`, { headers });
+        return { ok: resp.ok, status: resp.status };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
 export function setupCivitai() {
     ipcMain.handle('civitai-lookup-lora', async (event, loraName, apiInterface, apiKey) => {
         return civitaiLookupLora(loraName, apiInterface, apiKey);
     });
+    ipcMain.handle('civitai-test-key', async (event, apiKey) => {
+        return civitaiTestKey(apiKey);
+    });
 }
 
-export { civitaiLookupLora };
+export { civitaiLookupLora, civitaiTestKey };
