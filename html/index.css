@@ -377,8 +377,6 @@ html, body {
     padding: 3px 6px;
     border-radius: 6px;
     border: 1px solid #555;
-    background: rgba(0,0,0,0.2);
-    color: inherit;
 }
 .character-swap-arrow { opacity: 0.7; }
 .character-swap-btn {

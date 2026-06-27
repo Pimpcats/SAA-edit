@@ -80,6 +80,11 @@ body {
     margin: 4px 0;
 }
 
+.character-swap-select, .character-swap-select option {
+    background: rgb(39, 39, 42);
+    color: gainsboro;
+}
+
 /* dropdown */
 .dropdown-view {
     margin-top: 10px;

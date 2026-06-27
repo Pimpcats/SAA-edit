@@ -80,6 +80,11 @@ body {
     margin: 4px 0;
 }
 
+.character-swap-select, .character-swap-select option {
+    background: rgb(230, 227, 210);
+    color: #4A403A;
+}
+
 /* dropdown */
 .dropdown-view {
     margin-top: 10px;
