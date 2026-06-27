@@ -177,9 +177,11 @@ export function setupButtonOverlay() {
     restrictOverlayPosition(buttonOverlay, defaultPosition);
 
     let isMinimized = false;
+    let isLocked = localStorage.getItem('overlayLocked') === 'true';
     let dragHandler;
 
     function enableDrag() {
+        if (isLocked) return;
         if (!dragHandler) {
             dragHandler = addDragFunctionality(buttonOverlay, () => {
                 const loadingOverlay = document.getElementById('cg-loading-overlay');
@@ -198,6 +200,24 @@ export function setupButtonOverlay() {
     }
 
     enableDrag();
+
+    // Lock toggle: freeze/restore this card's position.
+    const lockButton = document.createElement('button');
+    lockButton.className = 'cg-lock-button';
+    lockButton.title = 'Lock / Unlock position';
+    lockButton.style.cssText = 'position:absolute;top:6px;right:8px;width:18px;height:18px;'
+        + 'min-width:18px;min-height:18px;padding:0;margin:0;border:none;background:none;'
+        + 'cursor:pointer;font-size:13px;line-height:18px;z-index:2;';
+    const updateLockIcon = () => { lockButton.textContent = isLocked ? '🔒' : '🔓'; };
+    updateLockIcon();
+    lockButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isLocked = !isLocked;
+        localStorage.setItem('overlayLocked', String(isLocked));
+        if (isLocked) { disableDrag(); } else { enableDrag(); }
+        updateLockIcon();
+    });
+    buttonOverlay.appendChild(lockButton);
 
     function setMinimizedState(overlay, container, button, isMin) {
         if (isMin) {
@@ -250,6 +270,7 @@ export function setupButtonOverlay() {
         e.stopPropagation();
         isMinimized = !isMinimized;
         setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, isMinimized);
+        lockButton.style.display = isMinimized ? 'none' : 'block';
     });
 
     function toggleButtonOverlayVisibility() {
@@ -451,11 +472,17 @@ export function addCustomOverlayDragFunctionality(element, dragHandle, getSyncEl
     let isDragging = false;
     let startX, startY;
 
+    const lockKey = `${storageKey}-locked`;
+    const isLocked = () => localStorage.getItem(lockKey) === 'true';
+
     element.style.position = 'fixed';
     dragHandle.style.cursor = 'grab';
-    dragHandle.style.pointerEvents = 'auto'; 
+    dragHandle.style.pointerEvents = 'auto';
 
     const onMouseDown = (e) => {
+        if (isLocked()) {
+            return;
+        }
         if (!e.target.closest('.cg-drag-handle') || e.target.closest('.cg-close-button')) {
             return;
         }
@@ -905,7 +932,27 @@ function createCustomOverlay(
     });
     overlay.appendChild(closeButton);
 
-    const dragHandle = overlay.querySelector('.cg-drag-handle');    
+    // Lock toggle: freeze/restore this overlay's position.
+    const lockKey = `${positionStorageKey}-locked`;
+    const lockButton = document.createElement('button');
+    lockButton.className = 'cg-lock-button';
+    lockButton.title = 'Lock / Unlock position';
+    lockButton.style.cssText = 'position:absolute;top:6px;right:34px;width:18px;height:18px;'
+        + 'min-width:18px;min-height:18px;padding:0;margin:0;border:none;background:none;'
+        + 'cursor:pointer;font-size:13px;line-height:18px;z-index:10001;';
+    const updateLockIcon = () => {
+        lockButton.textContent = localStorage.getItem(lockKey) === 'true' ? '🔒' : '🔓';
+    };
+    updateLockIcon();
+    lockButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nowLocked = localStorage.getItem(lockKey) !== 'true';
+        localStorage.setItem(lockKey, String(nowLocked));
+        updateLockIcon();
+    });
+    overlay.appendChild(lockButton);
+
+    const dragHandle = overlay.querySelector('.cg-drag-handle');
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'cg-resize-handle'; 
             
