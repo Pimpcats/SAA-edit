@@ -221,7 +221,7 @@ export function setupLoraLibrary(containerId) {
             return;
         }
         scanBtn.disabled = true;
-        let found = 0; let errors = 0;
+        let found = 0; let errors = 0; let firstError = '';
         for (let i = 0; i < names.length; i++) {
             setStatus((getLang().lora_library_scanning || 'Scanning {0}/{1}...').replace('{0}', i + 1).replace('{1}', names.length));
             const res = await lookup(names[i]).catch(err => ({ ok: false, error: err.message }));
@@ -230,12 +230,13 @@ export function setupLoraLibrary(containerId) {
                 appendResult(res);
             } else if (!res || !res.ok) {
                 errors++;
+                if (!firstError) firstError = (res && res.error) ? `${names[i]}: ${res.error}` : `${names[i]}: unknown`;
             }
         }
         scanBtn.disabled = false;
+        const tail = errors ? ` (${errors} errors — e.g. ${firstError})` : '';
         setStatus((getLang().lora_library_done || 'Done. {0}/{1} matched on civitai{2}.')
-            .replace('{0}', found).replace('{1}', names.length)
-            .replace('{2}', errors ? ` (${errors} errors — check key/model path/network)` : ''));
+            .replace('{0}', found).replace('{1}', names.length).replace('{2}', tail));
     }
 
     scanBtn.addEventListener('click', scanAll);
