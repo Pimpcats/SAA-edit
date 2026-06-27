@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { getGlobalSettings } from './globalSettings.js';
+import { getLoraBaseDirs } from './modelList.js';
 
 const CAT = '[civitai]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
@@ -29,18 +30,20 @@ function saveHashCache() {
     }
 }
 
-// Candidate directories that hold LoRA files for the active backend.
-function loraDirs(apiInterface) {
+// Candidate directories that hold LoRA files (uses the same resolution as the
+// LoRA list, so custom paths are honoured).
+function loraDirs() {
     const S = getGlobalSettings();
-    const dirs = [];
-    if (apiInterface === 'ComfyUI' && S.model_path_comfyui) {
-        dirs.push(path.join(path.dirname(S.model_path_comfyui), 'loras'));
-    }
+    const dirs = getLoraBaseDirs(S.model_path_comfyui, S.model_path_webui);
+    // Extra fallbacks just in case.
     if (S.model_path_webui) {
         dirs.push(path.join(path.dirname(S.model_path_webui), 'Lora'));
         dirs.push(path.join(path.dirname(S.model_path_webui), 'models', 'Lora'));
     }
-    return dirs;
+    if (S.model_path_comfyui) {
+        dirs.push(path.join(path.dirname(S.model_path_comfyui), 'loras'));
+    }
+    return [...new Set(dirs)];
 }
 
 function deepFind(dir, baseLower) {
@@ -63,16 +66,17 @@ function deepFind(dir, baseLower) {
     return null;
 }
 
-function resolveLoraPath(loraName, apiInterface) {
+function resolveLoraPath(loraName) {
+    const dirs = loraDirs();
     const names = [loraName, `${loraName}.safetensors`];
-    for (const dir of loraDirs(apiInterface)) {
+    for (const dir of dirs) {
         for (const n of names) {
             const c = path.join(dir, n);
             if (fs.existsSync(c) && fs.statSync(c).isFile()) return c;
         }
     }
     const baseLower = path.basename(loraName).replace(/\.safetensors$/i, '').toLowerCase();
-    for (const dir of loraDirs(apiInterface)) {
+    for (const dir of dirs) {
         const found = deepFind(dir, baseLower);
         if (found) return found;
     }
@@ -109,7 +113,7 @@ async function lookupByHash(hash, apiKey) {
 
 async function civitaiLookupLora(loraName, apiInterface, apiKey) {
     try {
-        const filePath = resolveLoraPath(loraName, apiInterface);
+        const filePath = resolveLoraPath(loraName);
         if (!filePath) return { ok: false, error: 'file-not-found', loraName };
 
         const hash = hashFile(filePath);

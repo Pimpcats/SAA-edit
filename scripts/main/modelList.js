@@ -301,6 +301,21 @@ function updateControlNetList(model_path_comfyui, model_path_webui, search_subfo
     }
 }
 
+// Return the actual base directories where LoRA files live (custom paths or
+// the default next to the model path), matching how the LoRA list is built.
+function getLoraBaseDirs(model_path_comfyui, model_path_webui) {
+    const dirs = [];
+    const customComfy = resolveCustomPaths(['comfyui'], 'lora');
+    if (customComfy.length > 0) dirs.push(...customComfy);
+    else if (model_path_comfyui) dirs.push(path.join(path.dirname(model_path_comfyui), 'loras'));
+
+    const customWeb = resolveCustomPaths(['a1111', 'forge'], 'lora');
+    if (customWeb.length > 0) dirs.push(...customWeb);
+    else if (model_path_webui) dirs.push(path.join(path.dirname(model_path_webui), 'Lora'));
+
+    return dirs.filter(d => { try { return fs.existsSync(d); } catch { return false; } });
+}
+
 function updateLoRAList(model_path_comfyui, model_path_webui, search_subfolder) {
     // --- ComfyUI ---
     const customComfyPaths = resolveCustomPaths(['comfyui'], 'lora');    
@@ -922,5 +937,6 @@ export {
     getImageTaggerModels,
     updateModelAndLoRAList,
     collectRelativePaths,
-    getExtraModels
+    getExtraModels,
+    getLoraBaseDirs
 };
