@@ -90,7 +90,30 @@ function setupCachedFiles(){
         };
     });
 
+    ipcMain.handle('save-view-tags', async (event, viewTags) => {
+        return saveViewTags(viewTags);
+    });
+
     return thumb && language && characters && oc_characters && view_tags && character_tag_assist && loadingWait && loadingFailed && privacyBall;
+}
+
+function saveViewTags(viewTags) {
+    if (!viewTags || typeof viewTags !== 'object' || Array.isArray(viewTags)) {
+        console.error(CAT, 'Invalid viewTags: must be an object');
+        return false;
+    }
+    const filePath = path.join(appPath, 'data', 'view_tags.json');
+    try {
+        fs.writeFileSync(filePath, JSON.stringify(viewTags, null, 4), 'utf8');
+        // Refresh the in-memory cache so other consumers see the change.
+        for (const key of Object.keys(cachedViewTags)) delete cachedViewTags[key];
+        Object.assign(cachedViewTags, viewTags);
+        console.log(CAT, 'Saved view_tags.json');
+        return true;
+    } catch (err) {
+        console.error(CAT, `Failed to save view_tags.json: ${err.message}`);
+        return false;
+    }
 }
 
 function getCachedFiles() {
@@ -134,5 +157,6 @@ export {
     setupCachedFiles,
     getCachedFiles,
     getCachedFilesWithoutThumb,
-    getCharacterThumb
+    getCharacterThumb,
+    saveViewTags
 };

@@ -344,6 +344,18 @@ export const sharedBodyHTML = `
             <div class="custom-toggles-main"></div>
           </div>
 
+          <div class="backgrounds-container">
+            <div class="backgrounds-header">
+              <div></div>
+              <div></div>
+              <div class="backgrounds-header-span">
+                <span id="backgrounds-span">Backgrounds</span>
+                <img id="backgrounds-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="backgrounds-main"></div>
+          </div>
+
         </div>
       </div>
     </div>`;

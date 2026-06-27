@@ -14,7 +14,7 @@ import { WebSocketServer } from 'ws';
 import { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings, deleteSettings,
     updateMiraITUSettingFiles, loadMiraITUSettings, saveMiraITUSettings
  } from '../../scripts/main/globalSettings.js';
-import { getCachedFilesWithoutThumb, getCharacterThumb } from '../../scripts/main/cachedFiles.js';
+import { getCachedFilesWithoutThumb, getCharacterThumb, saveViewTags } from '../../scripts/main/cachedFiles.js';
 import { getModelList, getModelListAll, getVAEList, getDiffusionModelList, getTextEncoderList,
     getLoRAList, getImageTaggerModels, updateModelAndLoRAList, getControlNetList,
     getUpscalerList, getADetailerList, getONNXList } from '../../scripts/main/modelList.js';
@@ -381,6 +381,7 @@ const methodHandlers = {
 
   // cached files
   'getCachedFiles': ()=> getCachedFilesWithoutThumb(),
+  'saveViewTags': (params)=> saveViewTags(...params),
 
   // fileHandlers
   'readFile': (params)=> loadFile(...params),

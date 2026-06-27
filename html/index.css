@@ -68,9 +68,49 @@ html, body {
 .model-settings-container, .add-lora-container, 
 .system-settings-container, .regional-condition-container,
 .jsonlist-container, .adetailer-container, .queue-container,
-.custom-toggles-container
+.custom-toggles-container, .backgrounds-container
 {
     margin-top: 6px;
+}
+
+/* Backgrounds editor panel */
+.backgrounds-main.collapsed { display: none; }
+.backgrounds-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 4px;
+}
+.backgrounds-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.backgrounds-input {
+    flex: 1 1 auto;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+}
+.backgrounds-delete {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(120, 120, 120, 0.2);
+    color: inherit;
+    cursor: pointer;
+}
+.backgrounds-add {
+    margin-top: 4px;
+    padding: 6px 12px;
+    border: 1px dashed #777;
+    border-radius: 10px;
+    background: none;
+    color: inherit;
+    cursor: pointer;
 }
 
 /* Custom Toggles panel */

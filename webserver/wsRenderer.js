@@ -26,6 +26,7 @@ import { setupThemeToggle } from '../scripts/renderer/theme.js';
 import { setupRightClickMenu } from '../scripts/renderer/components/myRightClickMenu.js';
 import { setupAutoInfinite } from '../scripts/renderer/autoInfinite.js';
 import { setupCustomToggles } from '../scripts/renderer/customToggles.js';
+import { setupBackgroundsEditor } from '../scripts/renderer/backgroundsEditor.js';
 import { initWebSocket, isSecuredConnection, sendWebSocketMessage, registerCallback } from './front/wsRequest.js';
 
 // Run the init function when the DOM is fully loaded
@@ -140,6 +141,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         aDetailer: setupCollapsed('adetailer', true),
         queueManager: setupCollapsed('queue', false),
         customToggles: setupCollapsed('custom-toggles', true),
+        backgrounds: setupCollapsed('backgrounds', true),
     }
 }
 
@@ -529,6 +531,9 @@ async function init() {
 
         // Custom prompt toggles
         globalThis.customToggles = setupCustomToggles('custom-toggles-main');
+
+        // Backgrounds editor
+        globalThis.backgroundsEditor = setupBackgroundsEditor('backgrounds-main');
 
         // aDetailer
         globalThis.aDetailer = setupADetailer('adetailer-main');

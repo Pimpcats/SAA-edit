@@ -91,6 +91,7 @@ contextBridge.exposeInMainWorld('api', {
   updateMiraITUSettingFiles: async () => ipcRenderer.invoke('update-all-miraitu-setting-files'),
   // cachedFiles
   getCachedFiles: async () => ipcRenderer.invoke('get-cached-files'),
+  saveViewTags: async (viewTags) => ipcRenderer.invoke('save-view-tags', viewTags),
   // downloadFiles
   downloadURL: async () => ipcRenderer.invoke('download-url', url, filePath),
   // modelList

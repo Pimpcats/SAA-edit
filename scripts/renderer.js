@@ -26,6 +26,7 @@ import { setupThemeToggle } from './renderer/theme.js';
 import { setupRightClickMenu, addSpellCheckSuggestions } from './renderer/components/myRightClickMenu.js';
 import { setupAutoInfinite } from './renderer/autoInfinite.js';
 import { setupCustomToggles } from './renderer/customToggles.js';
+import { setupBackgroundsEditor } from './renderer/backgroundsEditor.js';
 import { extractHostPort } from './renderer/generate.js';
 
 function afterDOMinit() {
@@ -124,6 +125,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         aDetailer: setupCollapsed('adetailer', true),
         queueManager: setupCollapsed('queue', false),
         customToggles: setupCollapsed('custom-toggles', true),
+        backgrounds: setupCollapsed('backgrounds', true),
     }
 }
 
@@ -492,6 +494,9 @@ async function init(){
 
         // Custom prompt toggles
         globalThis.customToggles = setupCustomToggles('custom-toggles-main');
+
+        // Backgrounds editor
+        globalThis.backgroundsEditor = setupBackgroundsEditor('backgrounds-main');
 
         // aDetailer
         globalThis.aDetailer = setupADetailer('adetailer-main');
