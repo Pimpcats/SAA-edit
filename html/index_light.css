@@ -21,7 +21,7 @@ body {
 }
 
 #settings-save-icon, #settings-delete-icon, #model-refresh-icon,
-#global-refresh-icon, #global-settings-swap-layout-icon, #global-settings-theme-icon {
+#global-refresh-icon, #global-settings-swap-layout-icon, #global-settings-theme-icon, #global-settings-bars-icon {
     width: 20px;
     height: 20px;
     filter: invert(30%) sepia(50%) saturate(200%) hue-rotate(10deg) brightness(95%) contrast(100%); /* Soft coral */
@@ -29,12 +29,12 @@ body {
 }
 
 #settings-save-icon:hover, #settings-delete-icon:hover, #model-refresh-icon:hover,
-#global-refresh-icon:hover, #global-settings-swap-layout-icon:hover, #global-settings-theme-icon:hover {
+#global-refresh-icon:hover, #global-settings-swap-layout-icon:hover, #global-settings-theme-icon:hover, #global-settings-bars-icon:hover {
     opacity: 1;
 }
 
 #settings-save-toggle, #settings-delete-toggle, #model-refresh-toggle, #global-refresh-toggle,
-#global-settings-theme-toggle, #global-settings-swap-layout-toggle {
+#global-settings-theme-toggle, #global-settings-swap-layout-toggle, #global-settings-bars-toggle {
     background: none;
     border: none;
 }

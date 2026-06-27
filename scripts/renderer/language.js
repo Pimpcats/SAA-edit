@@ -320,6 +320,9 @@ export function updateSettings() {
     if (globalThis.backgroundsEditor?.refresh) {
         globalThis.backgroundsEditor.refresh();
     }
+    if (globalThis.barsMenu?.applyHidden) {
+        globalThis.barsMenu.applyHidden();
+    }
 
     globalThis.ai.interface.updateDefaults(SETTINGS.ai_interface);
     globalThis.ai.local_address.setValue(SETTINGS.ai_local_addr);

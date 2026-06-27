@@ -33,7 +33,7 @@ html, body {
     justify-content: flex-end; 
     align-items: center;
 }
-.settings-save, .settings-delete, .model-select,
+.settings-save, .settings-delete, .model-select, .global-settings-bars,
 .global-refresh, .global-settings-right-to-left, .global-settings-language, .global-settings-themes {
     margin-top: 8px;
     margin-bottom: 8px;
@@ -499,6 +499,48 @@ html, body {
     mask: url('../scripts/svg/del.svg') no-repeat center;
     -webkit-mask-size: contain;
     mask-size: contain;
+}
+
+#global-settings-bars-icon {
+    -webkit-mask: url('../scripts/svg/sliders.svg') no-repeat center;
+    mask: url('../scripts/svg/sliders.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+/* Settings-wheel bars menu */
+.bars-menu {
+    position: fixed;
+    z-index: 10070;
+    background: rgba(17, 17, 17, 0.98);
+    border: 2px solid #333;
+    border-radius: 10px;
+    padding: 8px;
+    min-width: 200px;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    color: #eee;
+}
+.bars-menu-title { font-weight: bold; padding: 4px 6px 8px; }
+.bars-menu-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+.bars-menu-row:hover { background: rgba(255, 255, 255, 0.08); }
+.bars-menu-restore {
+    margin-top: 8px;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(28, 224, 136, 0.25);
+    color: inherit;
+    cursor: pointer;
 }
 
 /* Highlight the Create Image button while infinite auto-generate is active */

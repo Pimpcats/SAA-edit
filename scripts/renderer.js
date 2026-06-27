@@ -31,6 +31,7 @@ import { setupCharacterEditor } from './renderer/characterEditor.js';
 import { setupLoraLibrary } from './renderer/loraLibrary.js';
 import { setupCharacterSwap } from './renderer/characterSwap.js';
 import { setupMultiCharEmphasisList } from './renderer/multiCharEmphasis.js';
+import { setupBarsMenu } from './renderer/barsMenu.js';
 import { extractHostPort } from './renderer/generate.js';
 
 function afterDOMinit() {
@@ -539,6 +540,9 @@ async function init(){
 
         // Infinite auto-generate (right-click the Create Image button)
         setupAutoInfinite();
+
+        // Settings wheel: show/hide bars
+        globalThis.barsMenu = setupBarsMenu();
 
         // Done
         globalThis.initialized = true;

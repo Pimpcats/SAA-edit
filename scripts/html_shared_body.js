@@ -30,6 +30,12 @@ export const sharedBodyHTML = `
         </div>
 
         <div id="global-settings-right">
+          <div class="global-settings-bars">
+            <button id="global-settings-bars-toggle" title="Show / hide bars">
+              <img id="global-settings-bars-icon" src="scripts/svg/sliders.svg" alt="bars" fill="currentColor">
+            </button>
+          </div>
+
           <div class="global-refresh">
             <button id="global-refresh-toggle" title="Refresh Page">
               <img id="global-refresh-icon" src="scripts/svg/refresh.svg" alt="refresh" fill="currentColor">
