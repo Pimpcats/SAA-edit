@@ -251,6 +251,11 @@
         "save_settings_title": "Save Settings file\nPlease enter the name of the file to be saved.",
         "save_settings_success": "{0} Saved!",
         "save_settings_failed": "Save {0} failed!",
+        "delete_settings_default": "The default settings.json cannot be deleted.",
+        "delete_settings_confirm": "Delete settings preset \"{0}\"?\nThis cannot be undone.",
+        "delete_settings_confirm2": "Are you absolutely sure?\nPermanently delete \"{0}\"?",
+        "delete_settings_success": "{0} deleted!",
+        "delete_settings_failed": "Delete {0} failed!",
 
         "saac_http_connection": "[Warning] Non-Secure Connection\n\nConnected using HTTP/WebSocket. For enhanced security, ensure the SAA server is configured with valid SSL certificates.",
         "saac_disconnected": "[color=red][Error] Disconnected from SAA...[/color]\nThe system will automatically attempt to reconnect when you select character or generate image.",

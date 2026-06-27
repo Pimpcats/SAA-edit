@@ -161,6 +161,10 @@ function setupGlobalSettings() {
         return saveSettings(fineName, settings);
     });
 
+    ipcMain.handle('delete-setting-file', async (event, fineName) => {
+        return deleteSettings(fineName);
+    });
+
     ipcMain.handle('update-all-miraitu-setting-files', async () => {
         return updateMiraITUSettingFiles();
     });
@@ -205,6 +209,34 @@ function saveSettings(fineName, settings) {
         return true;
     } catch (err) {
         console.error(CAT, `Failed to save settings to ${settingsDir}: ${err.message}`);
+        return false;
+    }
+}
+
+function deleteSettings(fineName) {
+    if (!fineName || typeof fineName !== 'string' || !fineName.toLowerCase().endsWith('.json')) {
+        console.error(CAT, `Invalid filename: "${fineName}". Must be a non-empty string ending with .json`);
+        return false;
+    }
+
+    // Never allow deleting the primary settings file.
+    if (fineName.toLowerCase() === 'settings.json') {
+        console.error(CAT, `Refusing to delete the default settings.json file.`);
+        return false;
+    }
+
+    const settingsDir = path.join(appPath, 'settings', fineName.replaceAll(/[/|\\:*?"<>]/g, " "));
+
+    try {
+        if (!fs.existsSync(settingsDir)) {
+            console.warn(CAT, `Settings file not found, nothing to delete: ${settingsDir}`);
+            return false;
+        }
+        fs.unlinkSync(settingsDir);
+        console.log(CAT, `Successfully deleted settings file: ${settingsDir}`);
+        return true;
+    } catch (err) {
+        console.error(CAT, `Failed to delete settings file ${settingsDir}: ${err.message}`);
         return false;
     }
 }
@@ -329,6 +361,7 @@ export {
     updateSettingFiles,
     loadSettings,
     saveSettings,
+    deleteSettings,
     updateMiraITUSettingFiles,
     loadMiraITUSettings,
     saveMiraITUSettings,

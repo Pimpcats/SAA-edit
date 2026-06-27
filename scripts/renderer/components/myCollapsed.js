@@ -109,6 +109,65 @@ export async function setupSaveSettingsToggle(){
     return saveSettingsButton;
 }
 
+export async function setupDeleteSettingsToggle(){
+    const deleteSettingsButton = document.getElementById('settings-delete-toggle');
+    if (!deleteSettingsButton) {
+        console.error(CAT, '[setupDeleteSettingsToggle] Delete button not found');
+        return null;
+    }
+
+    deleteSettingsButton.addEventListener('click', async () => {
+        const LANG = globalThis.cachedFiles.language[globalThis.globalSettings.language];
+        const selected = globalThis.dropdownList.settings.getValue();
+
+        // Never delete the primary settings.json
+        if (!selected || selected.toLowerCase() === 'settings.json') {
+            await showDialog('info', { message: LANG.delete_settings_default || 'The default settings.json cannot be deleted.' });
+            return;
+        }
+
+        const displayName = selected.toLowerCase().endsWith('.json') ? selected.slice(0, -5) : selected;
+
+        setBlur();
+        try {
+            // Ask twice to confirm.
+            const confirm1 = await showDialog('confirm', {
+                message: (LANG.delete_settings_confirm || 'Delete settings preset "{0}"?\nThis cannot be undone.').replace('{0}', displayName)
+            });
+            if (!confirm1) { return; }
+
+            const confirm2 = await showDialog('confirm', {
+                message: (LANG.delete_settings_confirm2 || 'Are you absolutely sure?\nPermanently delete "{0}"?').replace('{0}', displayName)
+            });
+            if (!confirm2) { return; }
+
+            let result;
+            if (globalThis.inBrowser) {
+                result = await sendWebSocketMessage({ type: 'API', method: 'deleteSettingFile', params: [selected] });
+            } else {
+                result = await globalThis.api.deleteSettingFile(selected);
+            }
+
+            if (result === true) {
+                if (globalThis.inBrowser) {
+                    globalThis.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
+                } else {
+                    globalThis.cachedFiles.settingList = await globalThis.api.updateSettingFiles();
+                }
+                globalThis.dropdownList.settings.setOptions(globalThis.cachedFiles.settingList);
+                globalThis.dropdownList.settings.updateDefaults('settings.json');
+                await showDialog('info', { message: (LANG.delete_settings_success || '{0} deleted!').replace('{0}', displayName) });
+            } else {
+                await showDialog('info', { message: (LANG.delete_settings_failed || 'Delete {0} failed!').replace('{0}', displayName) });
+            }
+        } finally {
+            setNormal();
+        }
+    });
+
+    return deleteSettingsButton;
+}
+
 export async function setupModelReloadToggle() {
     const refreshButton = document.getElementById('model-refresh-toggle');
     if (!refreshButton) {

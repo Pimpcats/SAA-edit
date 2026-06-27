@@ -20,7 +20,7 @@ body {
     align-items: center;
 }
 
-#settings-save-icon, #model-refresh-icon, 
+#settings-save-icon, #settings-delete-icon, #model-refresh-icon,
 #global-refresh-icon, #global-settings-swap-layout-icon, #global-settings-theme-icon {
     width: 20px;
     height: 20px;
@@ -28,12 +28,12 @@ body {
     opacity: 0.6;
 }
 
-#settings-save-icon:hover, #model-refresh-icon:hover, 
+#settings-save-icon:hover, #settings-delete-icon:hover, #model-refresh-icon:hover,
 #global-refresh-icon:hover, #global-settings-swap-layout-icon:hover, #global-settings-theme-icon:hover {
     opacity: 1;
 }
 
-#settings-save-toggle, #model-refresh-toggle, #global-refresh-toggle, 
+#settings-save-toggle, #settings-delete-toggle, #model-refresh-toggle, #global-refresh-toggle,
 #global-settings-theme-toggle, #global-settings-swap-layout-toggle {
     background: none;
     border: none;

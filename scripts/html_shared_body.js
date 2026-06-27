@@ -11,7 +11,12 @@ export const sharedBodyHTML = `
               <img id="settings-save-icon" src="scripts/svg/save.svg" alt="settings-save" fill="currentColor">
             </button>
           </div>
-          <div class="settings-select"></div>          
+          <div class="settings-delete">
+            <button id="settings-delete-toggle" title="Delete Settings">
+              <img id="settings-delete-icon" src="scripts/svg/del.svg" alt="settings-delete" fill="currentColor">
+            </button>
+          </div>
+          <div class="settings-select"></div>
         </div>
 
         <div id="global-settings-middle">

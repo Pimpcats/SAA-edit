@@ -11,7 +11,7 @@ import { callback_mySettingList, callback_api_model_select, callback_api_model_t
 import { setupSlider } from './renderer/components/mySlider.js';
 import { setupCheckbox, setupRadiobox } from './renderer/components/myCheckbox.js';
 import { setupButtons, toggleButtons, showCancelButtons } from './renderer/components/myButtons.js';
-import { setupCollapsed, setupSaveSettingsToggle, setupModelReloadToggle, 
+import { setupCollapsed, setupSaveSettingsToggle, setupDeleteSettingsToggle, setupModelReloadToggle,
     setupRefreshToggle, setupSwapToggle, doSwap, reloadFiles } from './renderer/components/myCollapsed.js';
 import { setupTextbox, setupInfoBox } from './renderer/components/myTextbox.js';
 import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from './renderer/generate_backend.js';
@@ -82,6 +82,7 @@ export async function setupHeader(SETTINGS, FILES, LANG){
     // Setup Header button
     globalThis.headerIcon = {
         save: setupSaveSettingsToggle(),
+        delete: await setupDeleteSettingsToggle(),
         reload: await setupModelReloadToggle(),
         refresh: setupRefreshToggle(),
         swap: setupSwapToggle(),
