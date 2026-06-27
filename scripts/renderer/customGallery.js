@@ -173,6 +173,19 @@ export function setupGallery(containerId) {
     globalThis.mainGallery.showLoading = function (loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix) {        
         const loadingOverlay = customCommonOverlay().createLoadingOverlay(loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix);
         const buttonOverlay = document.getElementById('cg-button-overlay');
+
+        // If the user locked the preview, pin it at its own saved spot/size
+        // every generation and don't make it draggable.
+        const previewLocked = localStorage.getItem('loadingPreviewLocked') === 'true';
+        const pinPos = JSON.parse(localStorage.getItem('loadingPreviewPos') || 'null');
+        if (previewLocked && pinPos) {
+            loadingOverlay.style.top = `${pinPos.top}px`;
+            loadingOverlay.style.left = `${pinPos.left}px`;
+            loadingOverlay.style.transform = 'none';
+            globalThis.mainGallery.isLoading = true;
+            return;
+        }
+
         const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
         if (savedPosition?.top !== undefined && savedPosition.left !== undefined) {
             loadingOverlay.style.top = `${savedPosition.top}px`;

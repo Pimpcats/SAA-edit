@@ -7,6 +7,7 @@ export function setupButtonOverlay() {
         const overlays = ['cg-button-overlay', 'cg-loading-overlay'];
         for (const id of overlays) {
             const overlay = document.getElementById(id);
+            if (id === 'cg-loading-overlay' && localStorage.getItem('loadingPreviewLocked') === 'true') continue;
             if (overlay && !overlay.classList.contains('minimized')) {
                 restrictOverlayPosition(overlay, {
                     translateX: id === 'cg-loading-overlay' 
@@ -768,16 +769,17 @@ function createLoadingOverlay(loadingMessage, elapsedTimePrefix, elapsedTimeSuff
             currentImage = pendingImage;
             const imgElement = overlay.querySelector('img');
             if (imgElement) {
+                const expanded = !!localStorage.getItem('loadingPreviewSize');
                 imgElement.src = currentImage;
-                imgElement.style.maxWidth = '256px';
-                imgElement.style.maxHeight = '384px';
+                imgElement.style.width = '100%';
+                imgElement.style.height = 'auto';
+                imgElement.style.maxWidth = '100%';
+                imgElement.style.maxHeight = expanded ? '100%' : '384px';
                 imgElement.style.objectFit = 'contain';
                 imgElement.onerror = () => {
                     currentImage = globalThis.cachedFiles.loadingWait;
                     lastBase64 = currentImage;
                     imgElement.src = currentImage;
-                    imgElement.style.maxWidth = '128px';
-                    imgElement.style.maxHeight = '128px';
                     imgElement.onerror = null;
                 };
             }
@@ -792,6 +794,66 @@ function createLoadingOverlay(loadingMessage, elapsedTimePrefix, elapsedTimeSuff
             delete overlay.dataset.timerInterval;
         }
     };
+
+    // --- Lock / resize so the preview can be pinned anywhere and expanded ---
+    const savedSize = JSON.parse(localStorage.getItem('loadingPreviewSize') || 'null');
+    if (savedSize && savedSize.width && savedSize.height) {
+        overlay.style.width = `${savedSize.width}px`;
+        overlay.style.height = `${savedSize.height}px`;
+    }
+    if (!overlay.querySelector('.cg-lock-button')) {
+        const LOCK_KEY = 'loadingPreviewLocked';
+        const POS_KEY = 'loadingPreviewPos';
+        const SIZE_KEY = 'loadingPreviewSize';
+        const isLocked = () => localStorage.getItem(LOCK_KEY) === 'true';
+
+        const lockBtn = document.createElement('button');
+        lockBtn.className = 'cg-lock-button';
+        lockBtn.title = 'Lock / Unlock preview (position & size)';
+        lockBtn.style.cssText = 'position:absolute;top:6px;left:8px;width:18px;height:18px;'
+            + 'border:none;background:none;cursor:pointer;font-size:13px;line-height:18px;padding:0;z-index:3;';
+        const updIcon = () => { lockBtn.textContent = isLocked() ? '🔒' : '🔓'; };
+        updIcon();
+        lockBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const now = !isLocked();
+            localStorage.setItem(LOCK_KEY, String(now));
+            if (now) {
+                const r = overlay.getBoundingClientRect();
+                localStorage.setItem(POS_KEY, JSON.stringify({ left: r.left, top: r.top }));
+                localStorage.setItem(SIZE_KEY, JSON.stringify({ width: r.width, height: r.height }));
+            }
+            updIcon();
+        });
+        overlay.appendChild(lockBtn);
+
+        const rh = document.createElement('div');
+        rh.className = 'cg-resize-handle';
+        overlay.appendChild(rh);
+        rh.addEventListener('mousedown', (e) => {
+            if (isLocked()) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const sx = e.clientX; const sy = e.clientY;
+            const r = overlay.getBoundingClientRect();
+            const sw = r.width; const sh = r.height;
+            const onMove = (ev) => {
+                const w = Math.max(160, sw + (ev.clientX - sx));
+                const h = Math.max(160, sh + (ev.clientY - sy));
+                overlay.style.width = `${w}px`;
+                overlay.style.height = `${h}px`;
+                localStorage.setItem(SIZE_KEY, JSON.stringify({ width: w, height: h }));
+                const img = overlay.querySelector('#cg-loading-overlay-image');
+                if (img) img.style.maxHeight = '100%';
+            };
+            const onUp = () => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+    }
 
     return overlay;
 }
