@@ -219,6 +219,7 @@
         "backgrounds_add": "+ Add Background",
         "backgrounds_delete": "Remove",
         "backgrounds_placeholder": "Background tags",
+        "backgrounds_toggle": "Toggle into prompt",
         "character_editor_title": "Add Character",
         "character_editor_search": "Search danbooru characters...",
         "character_editor_name": "Display name",

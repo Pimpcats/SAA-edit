@@ -320,6 +320,12 @@ function getPrompts(characters, views, ai='', apiInterface = 'None', loop=-1) {
     let aiPrompt = ai.trim();
     const exclude = globalThis.prompt.exclude.getValue();
 
+    // Active background toggles are added to the common (orange) prompt.
+    const backgroundsPrompt = globalThis.backgroundsEditor?.getActivePrompt?.() || '';
+    if (backgroundsPrompt !== '') {
+        common = common !== '' ? `${common}, ${backgroundsPrompt}` : backgroundsPrompt;
+    }
+
     // Active custom toggles contribute (((content:1))) to the positive prompt.
     const togglesPrompt = globalThis.customToggles?.getActivePrompt?.() || '';
     if (togglesPrompt !== '') {

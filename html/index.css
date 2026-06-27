@@ -236,6 +236,25 @@ html, body {
     align-items: center;
     gap: 6px;
 }
+.backgrounds-toggle {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border: 1px solid #555;
+    border-radius: 8px;
+    background: rgba(120, 120, 120, 0.2);
+    color: inherit;
+    cursor: pointer;
+    font-size: 12px;
+}
+.backgrounds-toggle.active {
+    background: rgba(28, 224, 136, 0.3);
+    border-color: #1ce088;
+    color: #1ce088;
+}
+.backgrounds-row.active .backgrounds-input {
+    border-color: #1ce088;
+}
 .backgrounds-input {
     flex: 1 1 auto;
     padding: 6px 8px;

@@ -317,6 +317,9 @@ export function updateSettings() {
     if (globalThis.customToggles) {
         globalThis.customToggles.setValues(SETTINGS.custom_toggles);
     }
+    if (globalThis.backgroundsEditor) {
+        globalThis.backgroundsEditor.setValues(SETTINGS.background_toggles);
+    }
 
     globalThis.ai.interface.updateDefaults(SETTINGS.ai_interface);
     globalThis.ai.local_address.setValue(SETTINGS.ai_local_addr);

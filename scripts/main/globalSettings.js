@@ -85,6 +85,8 @@ const defaultSettings = {
     "multi_char_emphasis_tag": "2girls",
 
     "custom_toggles": [],
+    "background_toggles": [],
+    "background_toggles_seeded": false,
     "civitai_api_key": "",
 
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
