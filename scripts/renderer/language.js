@@ -312,7 +312,7 @@ export function updateSettings() {
     globalThis.prompt.exclude.setValue(SETTINGS.prompt_ban);
 
     globalThis.multiCharEmphasis.enable.setValue(SETTINGS.multi_char_emphasis_enable);
-    globalThis.multiCharEmphasis.tag.setValue(SETTINGS.multi_char_emphasis_tag);
+    if (globalThis.multiCharEmphasis.list?.refresh) globalThis.multiCharEmphasis.list.refresh();
 
     if (globalThis.customToggles) {
         globalThis.customToggles.setValues(SETTINGS.custom_toggles);

@@ -292,7 +292,8 @@ async function getCharacters(){
     // (e.g. "2girls", "1girl 1boy", "2boys") when 2+ characters are selected.
     const SETTINGS = globalThis.globalSettings;
     if (SETTINGS.multi_char_emphasis_enable && selectedCount >= 2) {
-        const emphasis = (SETTINGS.multi_char_emphasis_tag || '').trim().replace(/,+$/, '').trim();
+        let emphasis = globalThis.multiCharEmphasis?.list?.getActiveTags?.() || '';
+        if (emphasis === '') emphasis = (SETTINGS.multi_char_emphasis_tag || '').trim().replace(/,+$/, '').trim();
         if (emphasis !== '') {
             character = `${emphasis}, ${character}`;
         }

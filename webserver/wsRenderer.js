@@ -30,6 +30,7 @@ import { setupBackgroundsEditor } from '../scripts/renderer/backgroundsEditor.js
 import { setupCharacterEditor } from '../scripts/renderer/characterEditor.js';
 import { setupLoraLibrary } from '../scripts/renderer/loraLibrary.js';
 import { setupCharacterSwap } from '../scripts/renderer/characterSwap.js';
+import { setupMultiCharEmphasisList } from '../scripts/renderer/multiCharEmphasis.js';
 import { initWebSocket, isSecuredConnection, sendWebSocketMessage, registerCallback } from './front/wsRequest.js';
 
 // Run the init function when the DOM is fully loaded
@@ -331,10 +332,7 @@ export async function createPrompt(SETTINGS, FILES, LANG) {
     globalThis.multiCharEmphasis = {
         enable: setupCheckbox('multi-char-emphasis-enable', LANG.multi_char_emphasis, SETTINGS.multi_char_emphasis_enable, true,
             (value) => { globalThis.globalSettings.multi_char_emphasis_enable = value; }),
-        tag: setupTextbox('multi-char-emphasis-tag', LANG.multi_char_emphasis_tag, {
-            value: SETTINGS.multi_char_emphasis_tag,
-            maxLines: 1
-            }, false, (value) => { globalThis.globalSettings.multi_char_emphasis_tag = value; })
+        list: setupMultiCharEmphasisList('multi-char-emphasis-tag')
     };
 
     console.log('Creating setupSuggestionSystem');

@@ -83,6 +83,8 @@ const defaultSettings = {
 
     "multi_char_emphasis_enable": false,
     "multi_char_emphasis_tag": "2girls",
+    "multi_char_emphasis_list": [],
+    "multi_char_emphasis_seeded": false,
 
     "custom_toggles": [],
     "background_toggles": [],

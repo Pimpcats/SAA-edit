@@ -335,6 +335,29 @@ html, body {
     padding: 4px;
 }
 
+/* Multi-character emphasis mini checkmark bars */
+.mce-list { display: flex; flex-direction: column; gap: 4px; padding: 2px 0; }
+.mce-row { display: flex; align-items: center; gap: 6px; }
+.mce-check {
+    width: 26px; height: 26px; flex: 0 0 auto;
+    border: 1px solid #555; border-radius: 6px;
+    background: rgba(120,120,120,0.2); color: inherit; cursor: pointer;
+}
+.mce-check.active { background: rgba(28,224,136,0.3); border-color: #1ce088; color: #1ce088; }
+.mce-input {
+    flex: 1 1 auto; padding: 5px 8px; border-radius: 6px;
+    border: 1px solid #555; background: rgba(0,0,0,0.2); color: inherit;
+}
+.mce-row.active .mce-input { border-color: #1ce088; }
+.mce-delete {
+    width: 26px; height: 26px; border: none; border-radius: 6px;
+    background: rgba(120,120,120,0.2); color: inherit; cursor: pointer;
+}
+.mce-add {
+    align-self: flex-start; margin-top: 2px; padding: 4px 10px;
+    border: 1px dashed #777; border-radius: 8px; background: none; color: inherit; cursor: pointer;
+}
+
 /* Character slot swap */
 .character-swap {
     display: flex;
