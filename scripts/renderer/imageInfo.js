@@ -5,6 +5,7 @@ import { extractImageMetadata, parseGenerationParameters } from './components/im
 import { createMiraITUWindow } from './components/imageInfoMiraITU.js';
 import { fileToBase64 } from './generate.js';
 import { SAMPLER_WEBUI, SCHEDULER_WEBUI } from './language.js';
+import { applyImageSettings } from './applyImageSettings.js';
 
 let cachedImage = '';
 
@@ -418,82 +419,24 @@ export function setupImageUploadOverlay() {
 
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'metadata-buttons';
-        
-        const copyButton = document.createElement('button');
-        copyButton.className = 'copy-all-metadata';
-        copyButton.textContent = LANG.image_info_copy_metadata;
 
-        copyButton.addEventListener('click', async () => {
-            let fullText = '';
-            const parsedMetadata = globalThis.currentImageMetadata;
-
-            if (parsedMetadata.positivePrompt) {
-                fullText += `Positive prompt: ${parsedMetadata.positivePrompt}\n`;
-            }
-            if (parsedMetadata.negativePrompt) {
-                fullText += `Negative prompt: ${parsedMetadata.negativePrompt}\n\n`;
-            }
-            if (parsedMetadata.otherParams) {
-                fullText += parsedMetadata.otherParams;
-            }
-            
-            try {
-                await navigator.clipboard.writeText(fullText);
-            } catch (err){
-                console.warn('Failed to copy:', err);
-                const SETTINGS = globalThis.globalSettings;
-                const FILES = globalThis.cachedFiles;
-                const LANG = FILES.language[SETTINGS.language];
-                globalThis.overlay.custom.createCustomOverlay(
-                    'none', LANG.saac_macos_clipboard.replace('{0}', fullText),
-                    384, 'center', 'left', null, 'Clipboard');
-            }
-            copyButton.textContent = LANG.image_info_copy_metadata_copied;
-            setTimeout(() => {
-                copyButton.textContent = LANG.image_info_copy_metadata;
-            }, 2000);
+        const label = LANG.image_info_send_all || 'Paste All';
+        const sendAllButton = document.createElement('button');
+        sendAllButton.className = 'send-metadata';
+        sendAllButton.textContent = label;
+        sendAllButton.addEventListener('click', () => {
+            sendPrompt(globalThis.currentImageMetadata, 'all');
+            sendAllButton.textContent = LANG.image_info_send_tags_sent || 'Sent';
+            setTimeout(() => { sendAllButton.textContent = label; }, 2000);
         });
-        
-        const makeSendButton = (label, mode) => {
-            const btn = document.createElement('button');
-            btn.className = 'send-metadata';
-            btn.textContent = label;
-            btn.addEventListener('click', () => {
-                const parsedMetadata = globalThis.currentImageMetadata;
-                sendPrompt(parsedMetadata, mode);
-                btn.textContent = LANG.image_info_send_tags_sent;
-                setTimeout(() => { btn.textContent = label; }, 2000);
-            });
-            return btn;
-        };
-
-        const sendPromptsButton = makeSendButton(LANG.image_info_send_prompts || 'Paste Prompts', 'prompts');
-        const sendSettingsButton = makeSendButton(LANG.image_info_send_settings || 'Paste Settings', 'settings');
-        const sendAllButton = makeSendButton(LANG.image_info_send_all || 'Paste All', 'all');
-
-        buttonContainer.appendChild(createButtonMireITU());
-        buttonContainer.appendChild(createButtonMetaData());
-        buttonContainer.appendChild(sendPromptsButton);
-        buttonContainer.appendChild(sendSettingsButton);
         buttonContainer.appendChild(sendAllButton);
-        buttonContainer.appendChild(copyButton);
 
         return buttonContainer;
     }
 
+    // Single "Paste All" button for every dropped image.
     function createWorkflowButtons() {
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'metadata-buttons';
-
-        const dummyButton1 = document.createElement('div');
-        const dummyButton2 = document.createElement('div');   
-
-        buttonContainer.appendChild(dummyButton1);
-        buttonContainer.appendChild(dummyButton2);
-        buttonContainer.appendChild(createButtonMireITU());
-        buttonContainer.appendChild(createButtonMetaData());
-        
-        return buttonContainer;
+        return createTagTransferButtons();
     }
 
     // Build a lowercase key -> value map from the A1111 "otherParams" block
@@ -610,14 +553,7 @@ export function setupImageUploadOverlay() {
     }
 
     function sendPrompt(parsedMetadata, mode = 'all') {
-        if (mode === 'prompts' || mode === 'all') {
-            applyPrompts(parsedMetadata);
-        }
-        if (mode === 'settings' || mode === 'all') {
-            applySettings(parsedMetadata);
-        }
-        globalThis.generate.landscape.setValue(false);
-        globalThis.ai.ai_select.setValue(0);
+        applyImageSettings(parsedMetadata, mode);
     }
 
     // eslint-disable-next-line sonarjs/cognitive-complexity

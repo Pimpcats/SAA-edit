@@ -46,6 +46,37 @@ function matchFromList(name, list) {
         || null;
 }
 
+// Detect known characters in the prompt and select the matching slots above.
+function applyCharactersFromPrompt(positivePrompt) {
+    if (!positivePrompt || !globalThis.characterList?.setSlotValue) return;
+    const chars = globalThis.cachedFiles?.characters || {};
+    const lower = positivePrompt.toLowerCase();
+    const matches = [];
+    const seen = new Set();
+    for (const tag of Object.values(chars)) {
+        if (!tag) continue;
+        const t = String(tag).toLowerCase();
+        if (t.length < 4 || seen.has(t)) continue;
+        const idx = lower.indexOf(t);
+        if (idx === -1) continue;
+        const before = idx === 0 ? '' : lower[idx - 1];
+        const after = lower[idx + t.length] || '';
+        const okBefore = before === '' || before === ',' || before === ' ' || before === '(';
+        const okAfter = after === '' || after === ',' || after === ':' || after === ')' || after === ' ';
+        if (okBefore && okAfter) {
+            matches.push({ tag, pos: idx });
+            seen.add(t);
+            if (matches.length >= 12) break;
+        }
+    }
+    if (matches.length === 0) return;
+    matches.sort((a, b) => a.pos - b.pos);
+    const found = matches.slice(0, 3).map(m => m.tag);
+    for (let i = 0; i < 3; i++) {
+        globalThis.characterList.setSlotValue(i, found[i] || 'none');
+    }
+}
+
 export function applyPrompts(parsedMetadata) {
     const defaultPositivePrompt = 'masterpiece, best quality, amazing quality';
     const defaultNegativePrompt = 'bad quality, worst quality, worst detail, sketch';
@@ -61,6 +92,8 @@ export function applyPrompts(parsedMetadata) {
     globalThis.prompt.common.setValue(allPrompt || defaultPositivePrompt);
     globalThis.prompt.positive.setValue(allLora);
     globalThis.prompt.negative.setValue(negativePrompt);
+
+    applyCharactersFromPrompt(positivePrompt);
 }
 
 export function applySettings(parsedMetadata) {
