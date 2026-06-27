@@ -118,8 +118,13 @@ export function setupLoraLibrary(containerId) {
             img.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (im.meta && applyMeta(im.meta)) flash(cell, LANG.lora_library_applied || 'Settings applied');
-                else flash(cell, LANG.lora_library_no_meta || 'No settings');
+                // Load this LoRA into a LoRA slot...
+                if (globalThis.lora?.addLoRAByName) {
+                    globalThis.lora.addLoRAByName(result.loraName);
+                }
+                // ...and apply the image's settings.
+                if (im.meta && applyMeta(im.meta)) flash(cell, LANG.lora_library_loaded || 'LoRA + settings applied');
+                else flash(cell, LANG.lora_library_loaded_nometa || 'LoRA loaded');
             });
             cell.appendChild(img);
             strip.appendChild(cell);

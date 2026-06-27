@@ -619,12 +619,22 @@ class SlotManager {
 
     reload() {
         const slotValues = this.getValues();
-    
+
         createSlotsFromValues(this, slotValues, {
             context: 'Restored',
             validateLoRA: true,
             skipInvalid: true
         });
+    }
+
+    // Append a LoRA slot by name (used by the LoRA library right-click).
+    addLoRAByName(name, modelStrength = '1.0', clipStrength = '1.0', mode = 'ALL') {
+        if (!name) return;
+        const slotValues = this.getValues();
+        // Avoid duplicate entries for the same LoRA.
+        if (slotValues.some(s => Array.isArray(s) && s[0] === name)) return;
+        slotValues.push([name, String(modelStrength), String(clipStrength), mode]);
+        createSlotsFromValues(this, slotValues, { context: 'Created', validateLoRA: true });
     }
 
     initializeSlotComponents(className, slot, currentValues = null) {
