@@ -4,6 +4,7 @@ import { handlePastedJsonOrCsvFile, handlePastedPlainTextItem } from './componen
 import { extractImageMetadata, parseGenerationParameters } from './components/imageInfoMetadata.js';
 import { createMiraITUWindow } from './components/imageInfoMiraITU.js';
 import { fileToBase64 } from './generate.js';
+import { SAMPLER_WEBUI, SCHEDULER_WEBUI } from './language.js';
 
 let cachedImage = '';
 
@@ -453,28 +454,30 @@ export function setupImageUploadOverlay() {
             }, 2000);
         });
         
-        const sendButton = document.createElement('button');
-        sendButton.className = 'send-metadata';
-        sendButton.textContent = LANG.image_info_send_tags;
-        
-        sendButton.addEventListener('click', () => {
-            const parsedMetadata = globalThis.currentImageMetadata;
-            
-            sendPrompt(parsedMetadata);
-            globalThis.generate.landscape.setValue(false);
-            globalThis.ai.ai_select.setValue(0);
-            
-            sendButton.textContent = LANG.image_info_send_tags_sent;
-            setTimeout(() => {
-                sendButton.textContent = LANG.image_info_send_tags;
-            }, 2000);
-        });
-        
+        const makeSendButton = (label, mode) => {
+            const btn = document.createElement('button');
+            btn.className = 'send-metadata';
+            btn.textContent = label;
+            btn.addEventListener('click', () => {
+                const parsedMetadata = globalThis.currentImageMetadata;
+                sendPrompt(parsedMetadata, mode);
+                btn.textContent = LANG.image_info_send_tags_sent;
+                setTimeout(() => { btn.textContent = label; }, 2000);
+            });
+            return btn;
+        };
+
+        const sendPromptsButton = makeSendButton(LANG.image_info_send_prompts || 'Paste Prompts', 'prompts');
+        const sendSettingsButton = makeSendButton(LANG.image_info_send_settings || 'Paste Settings', 'settings');
+        const sendAllButton = makeSendButton(LANG.image_info_send_all || 'Paste All', 'all');
+
         buttonContainer.appendChild(createButtonMireITU());
         buttonContainer.appendChild(createButtonMetaData());
-        buttonContainer.appendChild(sendButton);
-        buttonContainer.appendChild(copyButton);        
-        
+        buttonContainer.appendChild(sendPromptsButton);
+        buttonContainer.appendChild(sendSettingsButton);
+        buttonContainer.appendChild(sendAllButton);
+        buttonContainer.appendChild(copyButton);
+
         return buttonContainer;
     }
 
@@ -493,59 +496,129 @@ export function setupImageUploadOverlay() {
         return buttonContainer;
     }
 
-    function sendPrompt(parsedMetadata) {
-        const defaultPositivePrompt = "masterpiece, best quality, amazing quality";
-        const defaultNegativePrompt = "bad quality, worst quality, worst detail, sketch";
-        
-        const extractedData = {
-            positivePrompt: parsedMetadata.positivePrompt || defaultPositivePrompt,
-            negativePrompt: parsedMetadata.negativePrompt || defaultNegativePrompt,
-            steps: '30',
-            cfgScale: "7.0",
-            width: parsedMetadata.width || `1024`,
-            height: parsedMetadata.height || `1360`,
-            seed: '-1'
-        };
-        
-        if (parsedMetadata.otherParams) {
-            const otherParamsLines = parsedMetadata.otherParams.split('\n');
+    // Build a lowercase key -> value map from the A1111 "otherParams" block
+    // (each entry is a "Key: value" line produced by parseGenerationParameters).
+    function buildParamMap(otherParams) {
+        const map = {};
+        if (!otherParams) return map;
+        for (const line of otherParams.split('\n')) {
+            const idx = line.indexOf(':');
+            if (idx === -1) continue;
+            const key = line.slice(0, idx).trim().toLowerCase();
+            const value = line.slice(idx + 1).trim();
+            if (key) map[key] = value;
+        }
+        return map;
+    }
 
-            extractedData.steps = findInt('Steps:', otherParamsLines);
-            extractedData.seed = findInt('Seed:', otherParamsLines);
-        
-            const cfgLine = otherParamsLines.find(line => line.trim().startsWith('CFG scale:'));
-            if (cfgLine) {
-                const cfgMatch = cfgLine.match(/CFG scale:\s*(\d+\.?\d*)/);
-                if (cfgMatch?.[1]) {
-                    extractedData.cfgScale = cfgMatch[1];
-                }
-            }           
-        
-            const sizeLine = otherParamsLines.find(line => line.trim().startsWith('Size:'));
-            if (sizeLine) {
-                const sizeMatch = sizeLine.match(/Size:\s*(\d+)x(\d+)/);
-                if (sizeMatch?.[1] && sizeMatch?.[2]) {
-                    extractedData.width = sizeMatch[1];
-                    extractedData.height = sizeMatch[2];
+    // Resolve sampler + scheduler against the WebUI lists. Handles both the
+    // modern A1111 format (separate "Sampler" + "Schedule type") and the older
+    // combined format ("DPM++ 2M Karras").
+    function resolveSamplerScheduler(samplerRaw, scheduleRaw) {
+        let sampler = (samplerRaw || '').trim();
+        let scheduler = (scheduleRaw || '').trim();
+
+        if (sampler && !SAMPLER_WEBUI.includes(sampler)) {
+            for (const s of SCHEDULER_WEBUI) {
+                if (s === 'Automatic') continue;
+                if (sampler.toLowerCase().endsWith(` ${s.toLowerCase()}`)) {
+                    if (!scheduler) scheduler = s;
+                    sampler = sampler.slice(0, sampler.length - s.length - 1).trim();
+                    break;
                 }
             }
         }
 
+        const matchedSampler = SAMPLER_WEBUI.find(s => s.toLowerCase() === sampler.toLowerCase()) || null;
+        const matchedScheduler = scheduler
+            ? (SCHEDULER_WEBUI.find(s => s.toLowerCase() === scheduler.toLowerCase()) || null)
+            : null;
+        return { sampler: matchedSampler, scheduler: matchedScheduler };
+    }
+
+    // Best-effort match of an A1111 "Model:" name against the loaded checkpoint
+    // list. Returns the matching option string or null (so we never set an
+    // invalid value).
+    function matchFromList(name, list) {
+        if (!name || !Array.isArray(list) || list.length === 0) return null;
+        const target = name.toLowerCase();
+        const baseOf = (o) => String(o).split(/[/\\]/).pop().replace(/\.(safetensors|ckpt|pt|pth)$/i, '').toLowerCase();
+        return list.find(o => baseOf(o) === target)
+            || list.find(o => String(o).toLowerCase() === target)
+            || list.find(o => String(o).toLowerCase().includes(target))
+            || null;
+    }
+
+    function applyPrompts(parsedMetadata) {
+        const defaultPositivePrompt = "masterpiece, best quality, amazing quality";
+        const defaultNegativePrompt = "bad quality, worst quality, worst detail, sketch";
+
+        const positivePrompt = parsedMetadata.positivePrompt || defaultPositivePrompt;
+        const negativePrompt = parsedMetadata.negativePrompt || defaultNegativePrompt;
+
         // Extract <lora:...> strings from positivePrompt
         const loraRegex = /<lora:[^>]+>/g;
-        const loraMatches = extractedData.positivePrompt.match(loraRegex) || [];
+        const loraMatches = positivePrompt.match(loraRegex) || [];
         const allLora = loraMatches.join('\n');
-        const allPrompt = extractedData.positivePrompt.replaceAll(loraRegex, '').replaceAll(/,\s*,/g, ',').replaceAll(/(^,\s*)|(\s*,$)/g, '').trim();
+        const allPrompt = positivePrompt.replaceAll(loraRegex, '').replaceAll(/,\s*,/g, ',').replaceAll(/(^,\s*)|(\s*,$)/g, '').trim();
 
         globalThis.prompt.common.setValue(allPrompt || defaultPositivePrompt);
         globalThis.prompt.positive.setValue(allLora);
-        globalThis.prompt.negative.setValue(extractedData.negativePrompt);    
-        globalThis.generate.seed.setValue(extractedData.seed);
-        globalThis.generate.cfg.setValue(extractedData.cfgScale);
-        globalThis.generate.step.setValue(extractedData.steps);
-        globalThis.generate.width.setValue(extractedData.width);
-        globalThis.generate.height.setValue(extractedData.height);    
-    }    
+        globalThis.prompt.negative.setValue(negativePrompt);
+    }
+
+    function applySettings(parsedMetadata) {
+        const map = buildParamMap(parsedMetadata.otherParams);
+
+        // Seed / CFG / Steps
+        if (map['seed'] !== undefined) globalThis.generate.seed.setValue(map['seed']);
+        if (map['cfg scale'] !== undefined) globalThis.generate.cfg.setValue(map['cfg scale']);
+        if (map['steps'] !== undefined) globalThis.generate.step.setValue(map['steps']);
+
+        // Size (prefer the "Size: WxH" param, fall back to parsed dimensions)
+        let width = parsedMetadata.width;
+        let height = parsedMetadata.height;
+        if (map['size']) {
+            const sizeMatch = map['size'].match(/(\d+)\s*x\s*(\d+)/i);
+            if (sizeMatch) { width = sizeMatch[1]; height = sizeMatch[2]; }
+        }
+        if (width) globalThis.generate.width.setValue(width);
+        if (height) globalThis.generate.height.setValue(height);
+
+        // Sampler / Scheduler
+        const { sampler, scheduler } = resolveSamplerScheduler(map['sampler'], map['schedule type']);
+        if (sampler) globalThis.generate.sampler.updateDefaults(sampler);
+        if (scheduler) globalThis.generate.scheduler.updateDefaults(scheduler);
+
+        // Checkpoint model (only if it matches a loaded model, to avoid an invalid value)
+        const matchedModel = matchFromList(map['model'], globalThis.cachedFiles?.modelList);
+        if (matchedModel) globalThis.dropdownList.model.updateDefaults(matchedModel);
+
+        // Hires fix — presence of any hires/denoise param implies it was enabled
+        const hasHires = map['hires upscale'] !== undefined
+            || map['hires upscaler'] !== undefined
+            || map['hires steps'] !== undefined
+            || map['denoising strength'] !== undefined;
+        if (hasHires) {
+            globalThis.generate.hifix.setValue(true);
+            if (map['hires upscale'] !== undefined) globalThis.hifix.scale.setValue(map['hires upscale']);
+            if (map['denoising strength'] !== undefined) globalThis.hifix.denoise.setValue(map['denoising strength']);
+            if (map['hires steps'] !== undefined) globalThis.hifix.steps.setValue(map['hires steps']);
+            const matchedUpscaler = matchFromList(map['hires upscaler'], globalThis.cachedFiles?.upscalerList);
+            if (matchedUpscaler) globalThis.hifix.model.updateDefaults(matchedUpscaler);
+        }
+    }
+
+    function sendPrompt(parsedMetadata, mode = 'all') {
+        if (mode === 'prompts' || mode === 'all') {
+            applyPrompts(parsedMetadata);
+        }
+        if (mode === 'settings' || mode === 'all') {
+            applySettings(parsedMetadata);
+        }
+        globalThis.generate.landscape.setValue(false);
+        globalThis.ai.ai_select.setValue(0);
+    }
 
     // eslint-disable-next-line sonarjs/cognitive-complexity
     function displayFormattedMetadata(metadata, fallbackMetadata=null) {
@@ -627,17 +700,4 @@ export function setupImageUploadOverlay() {
 
     globalThis.imageUploadOverlay = uploadOverlay;
     return uploadOverlay;
-}
-
-function findInt(keyWord, otherParamsLines) {
-    const line = otherParamsLines.find(line => line.trim().startsWith(keyWord));  
-    if (line) {
-        const escapedKeyWord = keyWord.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-        const regex = new RegExp(String.raw`${escapedKeyWord}\s*(\d+)`);
-        const match = line.match(regex);
-        if (match?.[1]) {
-            return match[1];
-        }
-    }
-    return null;
 }
