@@ -473,6 +473,20 @@ function createDropdown({
             return valueOnly;
         },
 
+        // Set a slot's selection by option value (or key). Returns true if matched.
+        setSlotValue: function(index, value) {
+            if (index < 0 || index >= dropdownCount) return false;
+            const opts = options[index] || [];
+            const v = String(value).toLowerCase();
+            const match = opts.find(o => String(o.value).toLowerCase() === v)
+                || opts.find(o => String(o.key).toLowerCase() === v);
+            if (!match) return false;
+            selectedKeys[index] = match.key;
+            selectedValues[index] = match.value;
+            if (inputs[index]) inputs[index].value = valueOnly ? match.value : match.key;
+            return true;
+        },
+
         // Swap the selection (and weight) of two slots, e.g. swapSlots(0, 3).
         swapSlots: function(i, j) {
             if (i === j || i < 0 || j < 0 || i >= dropdownCount || j >= dropdownCount) return;

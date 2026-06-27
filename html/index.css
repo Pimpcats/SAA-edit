@@ -335,9 +335,16 @@ html, body {
     padding: 4px;
 }
 
-/* Multi-character emphasis mini checkmark bars */
-.mce-list { display: flex; flex-direction: column; gap: 4px; padding: 2px 0; }
-.mce-row { display: flex; align-items: center; gap: 6px; }
+/* Make the whole app scrollable so the top settings are always reachable */
+#full-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Multi-character emphasis mini checkmark bars (stack left-to-right) */
+.mce-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 2px 0; align-items: center; }
+.mce-row { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.mce-input { width: 130px; flex: 0 0 auto; }
 .mce-check {
     width: 26px; height: 26px; flex: 0 0 auto;
     border: 1px solid #555; border-radius: 6px;
