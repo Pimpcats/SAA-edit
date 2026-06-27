@@ -290,54 +290,35 @@ export function setupImageUploadOverlay() {
         const files = e.dataTransfer.files;
         if (files.length === 0) return;
 
-        const rect = uploadOverlay.getBoundingClientRect();
-        const offsetY = e.clientY - rect.top;
-        const threshold = rect.height / 2;
-        const isTopHalf = offsetY < threshold;
         const file = files[0];
 
-        if (isTopHalf) {            
-            if(file.type.startsWith('image/')) {                
-                cachedImage = file;
-                const fallbackMetadata = {
-                    fileName: file.name,
-                    fileSize: file.size,
-                    fileType: file.type,
-                    lastModified: file.lastModified,
-                    error: 'Metadata extraction failed'
-                };
-                try {
-                    const metadata = await extractImageMetadata(file);                    
-                    showImagePreview(file);
-                    displayFormattedMetadata(metadata, fallbackMetadata);
-                } catch (err) {
-                    console.error('Failed to process image metadata:', err);                    
-                    showImagePreview(file);                    
-                    displayFormattedMetadata(fallbackMetadata);
-                }
-            } else if (file.type === `application/json` 
-                    || file.type === `text/csv`) {
-                console.log('Dropped JSON file:', file.name);
-                await globalThis.jsonlist.addJsonSlotFromFile(file, file.type);
-                globalThis.collapsedTabs.jsonlist.setCollapsed(false);
-                hideOverlay();
-            } else {
-                console.warn('Dropped file ', files[0].name, ' is not support. File type: ', file.type);
-                hideOverlay();
+        // MiraITU (image tile) removed from drag-drop: every dropped image just
+        // reads its metadata for Paste All.
+        if (file.type.startsWith('image/')) {
+            cachedImage = file;
+            const fallbackMetadata = {
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: file.type,
+                lastModified: file.lastModified,
+                error: 'Metadata extraction failed'
+            };
+            try {
+                const metadata = await extractImageMetadata(file);
+                showImagePreview(file);
+                displayFormattedMetadata(metadata, fallbackMetadata);
+            } catch (err) {
+                console.error('Failed to process image metadata:', err);
+                showImagePreview(file);
+                displayFormattedMetadata(fallbackMetadata);
             }
+        } else if (file.type === `application/json` || file.type === `text/csv`) {
+            console.log('Dropped JSON file:', file.name);
+            await globalThis.jsonlist.addJsonSlotFromFile(file, file.type);
+            globalThis.collapsedTabs.jsonlist.setCollapsed(false);
+            hideOverlay();
         } else {
-            const apiInterface = globalThis.generate.api_interface.getValue();
-            if(file.type.startsWith('image/')) {                
-                cachedImage = file;            
-                if(apiInterface === 'ComfyUI') {
-                    const imageBase64 = await fileToBase64(cachedImage);
-                    await createMiraITUWindow(imageBase64, cachedImage);
-                } else {
-                    globalThis.overlay.custom.createErrorOverlay(LANG.message_mira_itu_only_comfyui, 'https://github.com/mirabarukaso/ComfyUI_MiraSubPack');
-                }                
-            } else {
-                console.warn('Dropped file ', file.name, ' is not support. File type: ', file.type);
-            }
+            console.warn('Dropped file ', file.name, ' is not support. File type: ', file.type);
             hideOverlay();
         }
     });
