@@ -109,5 +109,16 @@ export function setupAutoInfinite() {
         showMenu(e.clientX, e.clientY);
     }, true);
 
+    // Ctrl+Enter (or Cmd+Enter) triggers Create Image.
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter')) {
+            e.preventDefault();
+            const single = globalThis.generate && globalThis.generate.generate_single;
+            if (single && typeof single.click === 'function') {
+                single.click();
+            }
+        }
+    });
+
     return { start, stop, toggle };
 }

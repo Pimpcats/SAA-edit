@@ -329,7 +329,19 @@ export const sharedBodyHTML = `
                 <img id="queue-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
               </div>
             </div>                                    
-            <div class="queue-main"></div>            
+            <div class="queue-main"></div>
+          </div>
+
+          <div class="custom-toggles-container">
+            <div class="custom-toggles-header">
+              <div></div>
+              <div></div>
+              <div class="custom-toggles-header-span">
+                <span id="custom-toggles-span">Custom Toggles</span>
+                <img id="custom-toggles-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="custom-toggles-main"></div>
           </div>
 
         </div>

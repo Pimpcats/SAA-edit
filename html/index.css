@@ -67,9 +67,75 @@ html, body {
 .highres-fix-container, .refiner-container, .controlnet-container,
 .model-settings-container, .add-lora-container, 
 .system-settings-container, .regional-condition-container,
-.jsonlist-container, .adetailer-container, .queue-container
+.jsonlist-container, .adetailer-container, .queue-container,
+.custom-toggles-container
 {
     margin-top: 6px;
+}
+
+/* Custom Toggles panel */
+.custom-toggles-main.collapsed { display: none; }
+.custom-toggles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 4px;
+}
+.custom-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.custom-toggle-chip {
+    flex: 1 1 auto;
+    min-width: 80px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    border: 1px solid #555;
+    background: rgba(120, 120, 120, 0.2);
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.custom-toggle-chip.active {
+    background: rgba(28, 224, 136, 0.25);
+    border-color: #1ce088;
+    box-shadow: 0 0 6px rgba(28, 224, 136, 0.6);
+}
+.custom-toggle-edit, .custom-toggle-delete, .custom-toggle-done {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(120, 120, 120, 0.2);
+    color: inherit;
+    cursor: pointer;
+}
+.custom-toggle-add {
+    margin-top: 4px;
+    padding: 6px 12px;
+    border: 1px dashed #777;
+    border-radius: 10px;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+.custom-toggle-editor {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    margin-top: 4px;
+}
+.custom-toggle-name-input { flex: 0 0 30%; }
+.custom-toggle-content-input { flex: 1 1 auto; }
+.custom-toggle-editor input {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
 }
 
 #generate-settings-static-left, #generate-settings-static-right {

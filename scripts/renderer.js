@@ -25,6 +25,7 @@ import { setupImageUploadOverlay } from './renderer/imageInfo.js';
 import { setupThemeToggle } from './renderer/theme.js';
 import { setupRightClickMenu, addSpellCheckSuggestions } from './renderer/components/myRightClickMenu.js';
 import { setupAutoInfinite } from './renderer/autoInfinite.js';
+import { setupCustomToggles } from './renderer/customToggles.js';
 import { extractHostPort } from './renderer/generate.js';
 
 function afterDOMinit() {
@@ -122,6 +123,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         jsonlist: setupCollapsed('jsonlist', true),
         aDetailer: setupCollapsed('adetailer', true),
         queueManager: setupCollapsed('queue', false),
+        customToggles: setupCollapsed('custom-toggles', true),
     }
 }
 
@@ -487,6 +489,9 @@ async function init(){
 
         // Custom JSON
         globalThis.jsonlist = setupJsonSlot('jsonlist-main');
+
+        // Custom prompt toggles
+        globalThis.customToggles = setupCustomToggles('custom-toggles-main');
 
         // aDetailer
         globalThis.aDetailer = setupADetailer('adetailer-main');

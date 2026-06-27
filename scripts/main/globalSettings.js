@@ -84,6 +84,8 @@ const defaultSettings = {
     "multi_char_emphasis_enable": false,
     "multi_char_emphasis_tag": "2girls",
 
+    "custom_toggles": [],
+
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
     "remote_ai_api_key":"<Your API Key here>",

@@ -320,6 +320,12 @@ function getPrompts(characters, views, ai='', apiInterface = 'None', loop=-1) {
     let aiPrompt = ai.trim();
     const exclude = globalThis.prompt.exclude.getValue();
 
+    // Active custom toggles contribute (((content:1))) to the positive prompt.
+    const togglesPrompt = globalThis.customToggles?.getActivePrompt?.() || '';
+    if (togglesPrompt !== '') {
+        positive = positive !== '' ? `${positive}, ${togglesPrompt}` : togglesPrompt;
+    }
+
     if (common !== '' && !common.endsWith(',')) {
         common += ', ';
     }
