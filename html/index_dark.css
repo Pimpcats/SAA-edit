@@ -15,8 +15,8 @@ body {
     position: absolute;
     width: calc(100vw - 100px); 
     height: calc(100vh - 122px);
-    min-width: 1280px;
-    min-height: 720px;
+    min-width: 640px;
+    min-height: 480px;
     align-items: center;
 }
 

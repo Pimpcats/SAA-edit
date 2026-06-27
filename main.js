@@ -43,6 +43,9 @@ function createWindow () {
     autoHideMenuBar: true,  // Hide menu
     width: 1300,
     height: 1200,
+    resizable: true,
+    minWidth: 640,
+    minHeight: 480,
     icon: path.join(__dirname, 'html/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'scripts/preload.js'),
