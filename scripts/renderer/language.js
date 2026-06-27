@@ -317,8 +317,8 @@ export function updateSettings() {
     if (globalThis.customToggles) {
         globalThis.customToggles.setValues(SETTINGS.custom_toggles);
     }
-    if (globalThis.backgroundsEditor) {
-        globalThis.backgroundsEditor.setValues(SETTINGS.background_toggles);
+    if (globalThis.backgroundsEditor?.refresh) {
+        globalThis.backgroundsEditor.refresh();
     }
 
     globalThis.ai.interface.updateDefaults(SETTINGS.ai_interface);

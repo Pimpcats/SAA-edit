@@ -297,6 +297,44 @@ html, body {
     cursor: pointer;
 }
 
+/* Backgrounds editor popup window */
+.backgrounds-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(640px, 90vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(17, 17, 17, 0.98);
+    border: 2px solid #333;
+    border-radius: 10px;
+    padding: 14px;
+    z-index: 10060;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.backgrounds-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+}
+.backgrounds-popup-close {
+    width: 28px; height: 28px;
+    border: none; border-radius: 8px;
+    background: rgba(120,120,120,0.3);
+    color: inherit; cursor: pointer;
+}
+.backgrounds-popup-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    padding: 4px;
+}
+
 /* Custom Toggles panel */
 .custom-toggles-main.collapsed { display: none; }
 .custom-toggles-list {
