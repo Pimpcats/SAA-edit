@@ -3,9 +3,9 @@ import { SAMPLER_WEBUI, SCHEDULER_WEBUI } from './language.js';
 
 const CAT = '[loraLibrary]';
 
-// LoRA library browser: matches local LoRAs to civitai (by SHA256 hash) and
-// shows their example images + settings. Right-click an image to apply its
-// generation settings to the generate area.
+// LoRA library browser: matches local LoRAs to civitai (by SHA256 hash, via the
+// civitai.red mirror) and shows their example images + settings in an inline,
+// scrollable view. Right-click an image to apply its settings.
 export function setupLoraLibrary(containerId) {
     const container = document.querySelector(`.${containerId}`);
     if (!container) {
@@ -15,6 +15,11 @@ export function setupLoraLibrary(containerId) {
 
     function getLang() {
         return globalThis.cachedFiles.language[globalThis.globalSettings.language];
+    }
+
+    function loraNames() {
+        const all = globalThis.cachedFiles.loraList || [];
+        return all.filter(n => n && n !== 'None' && n !== 'Default LoRA');
     }
 
     async function lookup(loraName) {
@@ -47,7 +52,7 @@ export function setupLoraLibrary(containerId) {
     }
 
     function applyMeta(meta) {
-        if (!meta) return;
+        if (!meta) return false;
         if (meta.prompt) globalThis.prompt.common.setValue(meta.prompt);
         if (meta.negativePrompt) globalThis.prompt.negative.setValue(meta.negativePrompt);
         if (meta.seed !== undefined) globalThis.generate.seed.setValue(meta.seed);
@@ -68,62 +73,8 @@ export function setupLoraLibrary(containerId) {
         const { sampler, scheduler } = resolveSampler(meta.sampler, meta['Schedule type'] || meta.scheduler);
         if (sampler) globalThis.generate.sampler.updateDefaults(sampler);
         if (scheduler) globalThis.generate.scheduler.updateDefaults(scheduler);
-
         globalThis.generate.landscape.setValue(false);
-    }
-
-    // ---- Gallery overlay ----
-    function openGallery(result) {
-        const old = document.getElementById('lora-library-gallery');
-        if (old) old.remove();
-
-        const LANG = getLang();
-        const overlay = document.createElement('div');
-        overlay.id = 'lora-library-gallery';
-        overlay.className = 'lora-gallery-overlay';
-
-        const header = document.createElement('div');
-        header.className = 'lora-gallery-header';
-        const title = document.createElement('a');
-        title.textContent = result.name || result.loraName;
-        if (result.modelUrl) { title.href = result.modelUrl; title.target = '_blank'; }
-        title.className = 'lora-gallery-title';
-        const hint = document.createElement('span');
-        hint.className = 'lora-gallery-hint';
-        hint.textContent = LANG.lora_library_apply_hint || '(right-click an image to use its settings)';
-        const close = document.createElement('button');
-        close.className = 'lora-gallery-close';
-        close.textContent = '✕';
-        close.addEventListener('click', () => overlay.remove());
-        header.appendChild(title);
-        header.appendChild(hint);
-        header.appendChild(close);
-        overlay.appendChild(header);
-
-        const grid = document.createElement('div');
-        grid.className = 'lora-gallery-grid';
-        for (const im of result.images) {
-            const cell = document.createElement('div');
-            cell.className = 'lora-gallery-cell';
-            const img = document.createElement('img');
-            img.src = im.url;
-            img.loading = 'lazy';
-            img.title = im.meta ? (LANG.lora_library_apply_hint || 'right-click to use these settings') : (LANG.lora_library_no_meta || 'no settings on this image');
-            img.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (im.meta) {
-                    applyMeta(im.meta);
-                    flash(cell, LANG.lora_library_applied || 'Settings applied');
-                } else {
-                    flash(cell, LANG.lora_library_no_meta || 'No settings');
-                }
-            });
-            cell.appendChild(img);
-            grid.appendChild(cell);
-        }
-        overlay.appendChild(grid);
-        document.body.appendChild(overlay);
+        return true;
     }
 
     function flash(cell, text) {
@@ -132,6 +83,49 @@ export function setupLoraLibrary(containerId) {
         badge.textContent = text;
         cell.appendChild(badge);
         setTimeout(() => badge.remove(), 1500);
+    }
+
+    // Append one LoRA's result (title + scrollable image strip) to the view.
+    function appendResult(result) {
+        const LANG = getLang();
+        const section = document.createElement('div');
+        section.className = 'lora-result-section';
+
+        const head = document.createElement('div');
+        head.className = 'lora-result-head';
+        const title = document.createElement('a');
+        title.className = 'lora-result-title';
+        title.textContent = result.name || result.loraName;
+        if (result.modelUrl) { title.href = result.modelUrl; title.target = '_blank'; }
+        head.appendChild(title);
+        const hint = document.createElement('span');
+        hint.className = 'lora-result-hint';
+        hint.textContent = LANG.lora_library_apply_hint || '(right-click an image to use its settings)';
+        head.appendChild(hint);
+        section.appendChild(head);
+
+        const strip = document.createElement('div');
+        strip.className = 'lora-result-strip';
+        for (const im of result.images) {
+            const cell = document.createElement('div');
+            cell.className = 'lora-gallery-cell';
+            const img = document.createElement('img');
+            img.src = im.url;
+            img.loading = 'lazy';
+            img.title = im.meta
+                ? (LANG.lora_library_apply_hint || 'right-click to use these settings')
+                : (LANG.lora_library_no_meta || 'no settings on this image');
+            img.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (im.meta && applyMeta(im.meta)) flash(cell, LANG.lora_library_applied || 'Settings applied');
+                else flash(cell, LANG.lora_library_no_meta || 'No settings');
+            });
+            cell.appendChild(img);
+            strip.appendChild(cell);
+        }
+        section.appendChild(strip);
+        results.appendChild(section);
     }
 
     // ---- Panel UI ----
@@ -149,85 +143,73 @@ export function setupLoraLibrary(containerId) {
 
     const controls = document.createElement('div');
     controls.className = 'lora-library-controls';
-    const filterInput = document.createElement('input');
-    filterInput.type = 'text';
-    filterInput.className = 'lora-library-filter';
-    filterInput.placeholder = getLang().lora_library_filter || 'Filter LoRAs...';
     const scanBtn = document.createElement('button');
     scanBtn.className = 'lora-library-scan';
     scanBtn.textContent = getLang().lora_library_scan || 'Scan all';
-    controls.appendChild(filterInput);
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className = 'lora-library-scan';
+    refreshBtn.textContent = getLang().lora_library_refresh || 'Refresh list';
     controls.appendChild(scanBtn);
+    controls.appendChild(refreshBtn);
 
-    const list = document.createElement('div');
-    list.className = 'lora-library-list';
+    const status = document.createElement('div');
+    status.className = 'lora-library-status-line';
 
-    function loraNames() {
-        const all = globalThis.cachedFiles.loraList || [];
-        return all.filter(n => n && n !== 'None' && n !== 'Default LoRA');
-    }
+    const results = document.createElement('div');
+    results.className = 'lora-library-results';
 
-    function renderList(filter = '') {
-        list.innerHTML = '';
-        const f = filter.trim().toLowerCase();
-        for (const name of loraNames()) {
-            if (f && !name.toLowerCase().includes(f)) continue;
-            const row = document.createElement('div');
-            row.className = 'lora-library-row';
-            const label = document.createElement('span');
-            label.className = 'lora-library-name';
-            label.textContent = name;
-            const status = document.createElement('span');
-            status.className = 'lora-library-status';
-            row.appendChild(label);
-            row.appendChild(status);
-            row.addEventListener('click', async () => {
-                status.textContent = '…';
-                const res = await lookup(name).catch(err => ({ ok: false, error: err.message }));
-                row._res = res;
-                applyStatus(status, res);
-                if (res && res.ok && res.found) openGallery(res);
-            });
-            list.appendChild(row);
+    function setStatus(text) { status.textContent = text; }
+
+    async function refreshLoraList() {
+        const SETTINGS = globalThis.globalSettings;
+        try {
+            if (globalThis.inBrowser) {
+                globalThis.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
+            } else {
+                globalThis.cachedFiles.loraList = await globalThis.api.getLoRAList(SETTINGS.api_interface);
+            }
+        } catch (err) {
+            console.error(CAT, 'refresh lora list failed:', err);
         }
+        const n = loraNames().length;
+        setStatus((getLang().lora_library_count || '{0} LoRAs found.').replace('{0}', n));
     }
 
-    function applyStatus(status, res) {
-        const LANG = getLang();
-        if (!res || !res.ok) {
-            status.textContent = res?.error === 'file-not-found'
-                ? (LANG.lora_library_not_found_local || 'file?')
-                : (LANG.lora_library_error || 'error');
-            status.className = 'lora-library-status err';
-        } else if (!res.found) {
-            status.textContent = LANG.lora_library_no_match || 'no match';
-            status.className = 'lora-library-status none';
-        } else {
-            status.textContent = `${res.images.length} ✓`;
-            status.className = 'lora-library-status ok';
+    async function scanAll() {
+        const names = loraNames();
+        results.innerHTML = '';
+        if (names.length === 0) {
+            setStatus(getLang().lora_library_empty
+                || 'No LoRAs found. Set your WebUI model path in System Settings, connect, then click "Refresh list".');
+            return;
         }
-    }
-
-    filterInput.addEventListener('input', () => renderList(filterInput.value));
-
-    scanBtn.addEventListener('click', async () => {
         scanBtn.disabled = true;
-        const rows = [...list.querySelectorAll('.lora-library-row')];
-        for (const row of rows) {
-            const name = row.querySelector('.lora-library-name').textContent;
-            const status = row.querySelector('.lora-library-status');
-            status.textContent = '…';
-            const res = await lookup(name).catch(err => ({ ok: false, error: err.message }));
-            row._res = res;
-            applyStatus(status, res);
+        let found = 0; let errors = 0;
+        for (let i = 0; i < names.length; i++) {
+            setStatus((getLang().lora_library_scanning || 'Scanning {0}/{1}...').replace('{0}', i + 1).replace('{1}', names.length));
+            const res = await lookup(names[i]).catch(err => ({ ok: false, error: err.message }));
+            if (res && res.ok && res.found && res.images.length) {
+                found++;
+                appendResult(res);
+            } else if (!res || !res.ok) {
+                errors++;
+            }
         }
         scanBtn.disabled = false;
-    });
+        setStatus((getLang().lora_library_done || 'Done. {0}/{1} matched on civitai{2}.')
+            .replace('{0}', found).replace('{1}', names.length)
+            .replace('{2}', errors ? ` (${errors} errors — check key/model path/network)` : ''));
+    }
+
+    scanBtn.addEventListener('click', scanAll);
+    refreshBtn.addEventListener('click', refreshLoraList);
 
     container.appendChild(keyInput);
     container.appendChild(controls);
-    container.appendChild(list);
-    renderList();
+    container.appendChild(status);
+    container.appendChild(results);
 
-    return { renderList, refresh: () => renderList(filterInput.value) };
+    setStatus((getLang().lora_library_count || '{0} LoRAs found.').replace('{0}', loraNames().length));
+
+    return { scanAll, refreshLoraList };
 }

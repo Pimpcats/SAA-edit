@@ -93,10 +93,14 @@ function hashFile(filePath) {
     return digest;
 }
 
+// Use the civitai.red mirror (proxies the civitai API + media).
+const CIVITAI_BASE = 'https://civitai.red';
+
 async function lookupByHash(hash, apiKey) {
-    const url = `https://civitai.com/api/v1/model-versions/by-hash/${hash}`;
+    const url = `${CIVITAI_BASE}/api/v1/model-versions/by-hash/${hash}`;
     const headers = {};
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+    console.log(CAT, 'lookup', url);
     const resp = await fetch(url, { headers });
     if (resp.status === 404) return { found: false };
     if (!resp.ok) throw new Error(`civitai HTTP ${resp.status}`);
@@ -129,7 +133,7 @@ async function civitaiLookupLora(loraName, apiInterface, apiKey) {
             name: d.model?.name || d.name || loraName,
             versionName: d.name,
             trainedWords: d.trainedWords || [],
-            modelUrl: d.modelId ? `https://civitai.com/models/${d.modelId}` : null,
+            modelUrl: d.modelId ? `${CIVITAI_BASE}/models/${d.modelId}` : null,
             images
         };
     } catch (err) {

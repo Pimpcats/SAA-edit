@@ -99,6 +99,15 @@ html, body {
     cursor: pointer;
     white-space: nowrap;
 }
+.lora-library-status-line { font-size: 0.85em; opacity: 0.85; min-height: 1em; padding: 2px 2px; }
+.lora-library-results { display: flex; flex-direction: column; gap: 10px; max-height: 70vh; overflow-y: auto; }
+.lora-result-section { border-top: 1px solid #444; padding-top: 6px; }
+.lora-result-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.lora-result-title { font-weight: bold; color: #3498db; text-decoration: none; }
+.lora-result-hint { font-size: 0.8em; opacity: 0.6; }
+.lora-result-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.lora-result-strip .lora-gallery-cell { position: relative; flex: 0 0 auto; }
+.lora-result-strip img { height: 220px; width: auto; border-radius: 8px; display: block; cursor: context-menu; }
 .lora-library-list { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; }
 .lora-library-row {
     display: flex;
