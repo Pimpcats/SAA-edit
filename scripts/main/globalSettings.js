@@ -48,6 +48,7 @@ const defaultSettings = {
     "view_camera": "None",
     "view_background": "None",
     "view_style": "None",
+    "view_position": "None",
     
     "api_model_sampler" : "euler_ancestral", 
     "api_model_scheduler" : "normal",

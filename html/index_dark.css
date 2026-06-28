@@ -371,8 +371,18 @@ body {
 }
 
 .mydropdown-container-4 {
-    display: grid;  
+    display: grid;
     grid-template-columns: repeat(4, 1fr);
+}
+
+.mydropdown-container-5 {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    width: 100%;
+    align-items: anchor-center;
 }
 
 .mydropdown-container-grid {

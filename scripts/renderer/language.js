@@ -88,7 +88,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.characterListRegional.setValueOnly(globalThis.globalSettings.language === 'en-US');
 
     // View List
-    setDropdownLanguage('dropdown-view', [LANG.view_angle, LANG.view_camera, LANG.view_background,LANG.view_style]);
+    setDropdownLanguage('dropdown-view', [LANG.view_angle, LANG.view_camera, LANG.view_background, LANG.view_style, LANG.view_position || 'Position']);
 
     // Gallery Thumb
     let labels = document.querySelector('#gallery-thumb-span');
@@ -244,7 +244,7 @@ export function updateSettings() {
     globalThis.generate.tag_assist.setValue(SETTINGS.tag_assist);
     globalThis.generate.wildcard_random.setValue(SETTINGS.wildcard_random);
 
-    globalThis.viewList.updateDefaults(SETTINGS.view_angle, SETTINGS.view_camera, SETTINGS.view_background, SETTINGS.view_style);
+    globalThis.viewList.updateDefaults(SETTINGS.view_angle, SETTINGS.view_camera, SETTINGS.view_background, SETTINGS.view_style, SETTINGS.view_position);
     globalThis.viewList.setTextValue(0, SETTINGS.weights4dropdownlist[0]);  // tag_angle
     globalThis.viewList.setTextValue(1, SETTINGS.weights4dropdownlist[1]);  // tag_camera
     globalThis.viewList.setTextValue(2, SETTINGS.weights4dropdownlist[2]);  // tag_background

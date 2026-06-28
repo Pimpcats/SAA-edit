@@ -97,19 +97,23 @@ export function getViewTags(seed) {
     const tag_camera = createViewTag('camera', globalThis.viewList.getValue()[1], seed, globalThis.viewList.getTextValue(1));
     const tag_background = createViewTag('background', globalThis.viewList.getValue()[2], seed, globalThis.viewList.getTextValue(2));
     const tag_style = createViewTag('style', globalThis.viewList.getValue()[3], seed, globalThis.viewList.getTextValue(3));
+    const tag_position = createViewTag('position', globalThis.viewList.getValue()[4], seed, globalThis.viewList.getTextValue(4));
 
     let combo = '';
-    if(tag_angle !== '') 
+    if(tag_angle !== '')
         combo += `${tag_angle}, `;
 
-    if(tag_camera !== '') 
+    if(tag_camera !== '')
         combo += `${tag_camera}, `;
 
-    if(tag_background !== '') 
+    if(tag_background !== '')
         combo += `${tag_background}, `;
 
-    if(tag_style !== '') 
+    if(tag_style !== '')
         combo += `${tag_style}, `;
+
+    if(tag_position !== '')
+        combo += `${tag_position}, `;
 
     return combo;
 }
