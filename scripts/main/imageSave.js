@@ -4,16 +4,22 @@ import path from 'node:path';
 
 const CAT = '[imageSave]';
 
+// The directory SAA-edit is installed in (where the exe lives when packaged,
+// or the project root in dev) — the default home for auto-saved images.
+function installDir() {
+    return app.isPackaged ? path.dirname(app.getPath('exe')) : app.getAppPath();
+}
+
 // Write a generated image (data URL) to disk silently. Used for auto-saving
-// each generation with the embedded saa-state chunk. Falls back to a folder in
-// the user's Pictures dir if the requested directory can't be created.
+// each generation with the embedded saa-state chunk. Falls back to an "outputs"
+// folder under the install directory if the requested directory can't be made.
 function saveGeneratedImage(dataUrl, filename, dir) {
     try {
         const m = /^data:image\/(\w+);base64,(.*)$/s.exec(dataUrl || '');
         if (!m) return { ok: false, error: 'invalid image data' };
         const buf = Buffer.from(m[2], 'base64');
 
-        const fallback = path.join(app.getPath('pictures'), 'SAA-edit');
+        const fallback = path.join(installDir(), 'outputs');
         let outDir = (dir && String(dir).trim()) ? String(dir).trim() : fallback;
         try {
             fs.mkdirSync(outDir, { recursive: true });
