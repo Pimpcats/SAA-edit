@@ -1,4 +1,5 @@
 import { SAMPLER_WEBUI, SCHEDULER_WEBUI } from './language.js';
+import { callback_myCharacterList_updateThumb } from './callbacks.js';
 
 // Shared "apply A1111 settings" logic, used by both the Image Info drop panel
 // and the gallery "Send" button. Takes a parsedMetadata object (from
@@ -50,36 +51,68 @@ function escapeRegex(s) {
     return s.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
+// A1111 escapes "(" ")" as "\(" "\)" and doubles backslashes inside prompts,
+// and tags may be wrapped with weights e.g. "(2b \(nier automata\):1.2)".
+// Strip backslashes and collapse whitespace so escaped tags still match the
+// plain character tags from the CSV.
+function cleanForMatch(s) {
+    return String(s).toLowerCase().replaceAll('\\', '').replace(/\s+/g, ' ').trim();
+}
+
+// Scan the prompt for any tag from `map` (an object of name -> tag). Returns
+// accepted matches [{tag, start, len}], preferring longer tags so e.g.
+// "hatsune miku" wins over a bare "miku", dropping shorter overlaps.
+function findTagsInPrompt(haystack, map, valueIsTag) {
+    const found = [];
+    const seen = new Set();
+    for (const [key, val] of Object.entries(map)) {
+        const tag = valueIsTag ? val : key;        // characters: value is the tag; OC: key is the tag
+        if (!tag) continue;
+        const t = cleanForMatch(tag);
+        if (t.length < 3 || seen.has(t)) continue;
+        seen.add(t);
+        // delimiter-bounded so partial tags don't false-match
+        const re = new RegExp(`(^|[,(\\s])${escapeRegex(t)}([,):\\s]|$)`);
+        const m = re.exec(haystack);
+        if (m) found.push({ slotValue: valueIsTag ? val : key, start: m.index, len: t.length });
+    }
+    found.sort((a, b) => b.len - a.len);
+    const accepted = [];
+    for (const f of found) {
+        const end = f.start + f.len;
+        if (accepted.some(a => f.start < a.end && end > a.start)) continue;
+        accepted.push({ ...f, end });
+    }
+    accepted.sort((a, b) => a.start - b.start);
+    return accepted;
+}
+
 // Detect known characters in the prompt and select the matching slots above.
 // Sets matched characters into the first slots and clears the rest, so leftover
-// "Random"/old selections don't linger.
+// "Random"/old selections don't linger. Also fills slot 4 (original character).
 function applyCharactersFromPrompt(positivePrompt) {
     const cl = globalThis.characterList;
     if (!positivePrompt || !cl?.setSlotValue) return;
-    const chars = globalThis.cachedFiles?.characters || {};
-    const lower = ` ${positivePrompt.toLowerCase()} `;
+    // The renderer exposes the WAI character map as cachedFiles.characterList
+    // ({ displayName: danbooruTag }); the prompt carries the tags (the values).
+    const chars = globalThis.cachedFiles?.characterList || globalThis.cachedFiles?.characters || {};
+    const ocs = globalThis.cachedFiles?.ocList || {};
+    const hay = ` ${cleanForMatch(positivePrompt)} `;
 
-    const matches = [];
-    const seen = new Set();
-    for (const tag of Object.values(chars)) {
-        if (!tag) continue;
-        const t = String(tag).toLowerCase().trim();
-        if (t.length < 3 || seen.has(t)) continue;
-        // delimiter-bounded match so partial tags don't false-match
-        const re = new RegExp(`(^|[,(\\s])${escapeRegex(t)}([,):\\s]|$)`);
-        const m = re.exec(lower);
-        if (m) {
-            matches.push({ tag, pos: m.index });
-            seen.add(t);
-        }
-    }
-    if (matches.length === 0) return;
-    matches.sort((a, b) => a.pos - b.pos);
-
-    // The first 3 dropdowns are characters (slot 4 is original-character).
+    // Slots 1-3 are WAI characters (match against tag values).
+    const charMatches = findTagsInPrompt(hay, chars, true);
     for (let i = 0; i < 3; i++) {
-        cl.setSlotValue(i, matches[i] ? matches[i].tag : 'none');
+        cl.setSlotValue(i, charMatches[i] ? charMatches[i].slotValue : 'none');
     }
+
+    // Slot 4 is the original character (its tag == its key).
+    const ocMatches = findTagsInPrompt(hay, ocs, false);
+    cl.setSlotValue(3, ocMatches[0] ? ocMatches[0].slotValue : 'none');
+
+    // Refresh the character preview thumbnails above to match the new slots.
+    try {
+        Promise.resolve(callback_myCharacterList_updateThumb()).catch(() => {});
+    } catch { /* thumb refresh is best-effort */ }
 }
 
 export function applyPrompts(parsedMetadata) {
