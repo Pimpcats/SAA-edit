@@ -623,6 +623,7 @@ export function setupGallery(containerId) {
         ensureSeedButton();
         ensureTagButton();
         ensureSendButton();
+        ensureWallpaperMenu();
         adjustPreviewContainer(previewContainer);
     }
     
@@ -714,6 +715,53 @@ export function setupGallery(containerId) {
             });
             container.appendChild(tagButton);
         }
+    }
+
+    // Right-click a gallery image -> set it as the OS desktop wallpaper.
+    function ensureWallpaperMenu() {
+        if (container._wallpaperMenuSet) return;
+        container._wallpaperMenuSet = true;
+        let menuEl = null;
+        const close = () => {
+            if (menuEl) { menuEl.remove(); menuEl = null; document.removeEventListener('mousedown', onDoc, true); }
+        };
+        const onDoc = (e) => { if (menuEl && !menuEl.contains(e.target)) close(); };
+        container.addEventListener('contextmenu', (e) => {
+            const img = e.target.closest && e.target.closest('img');
+            if (!img) return;
+            e.preventDefault();
+            e.stopPropagation();
+            close();
+            const LANG = globalThis.cachedFiles.language[globalThis.globalSettings.language];
+            menuEl = document.createElement('div');
+            menuEl.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;z-index:10080;`
+                + 'background:rgba(17,17,17,0.96);border:2px solid #333;border-radius:8px;padding:6px;'
+                + 'color:#eee;font-size:14px;min-width:200px;box-shadow:0 4px 8px rgba(0,0,0,0.4);';
+            const item = document.createElement('div');
+            item.style.cssText = 'padding:8px 12px;cursor:pointer;border-radius:6px;white-space:nowrap;';
+            item.textContent = LANG.gallery_set_wallpaper || 'Set as desktop background';
+            item.addEventListener('mouseover', () => { item.style.background = 'rgba(255,255,255,0.12)'; });
+            item.addEventListener('mouseout', () => { item.style.background = 'transparent'; });
+            item.addEventListener('click', async () => {
+                close();
+                const src = (img.src && img.src.startsWith('data:')) ? img.src
+                    : (img.dataset && img.dataset.src) ? img.dataset.src
+                        : images[currentIndex];
+                try {
+                    if (globalThis.inBrowser) {
+                        console.warn('[wallpaper] desktop-only feature');
+                    } else {
+                        const res = await globalThis.api.setWallpaper(src);
+                        if (!res || !res.ok) console.warn('[wallpaper]', res);
+                    }
+                } catch (err) {
+                    console.error('[wallpaper]', err);
+                }
+            });
+            menuEl.appendChild(item);
+            document.body.appendChild(menuEl);
+            setTimeout(() => document.addEventListener('mousedown', onDoc, true), 0);
+        }, true);
     }
 
     function ensureSendButton() {

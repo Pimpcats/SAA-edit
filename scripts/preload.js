@@ -96,6 +96,7 @@ contextBridge.exposeInMainWorld('api', {
   appendCharacter: async (displayName, tag) => ipcRenderer.invoke('append-character', displayName, tag),
   civitaiLookupLora: async (loraName, apiInterface, apiKey) => ipcRenderer.invoke('civitai-lookup-lora', loraName, apiInterface, apiKey),
   civitaiTestKey: async (apiKey) => ipcRenderer.invoke('civitai-test-key', apiKey),
+  setWallpaper: async (dataUrl) => ipcRenderer.invoke('set-wallpaper', dataUrl),
   // downloadFiles
   downloadURL: async () => ipcRenderer.invoke('download-url', url, filePath),
   // modelList
