@@ -1,5 +1,3 @@
-import { customCommonOverlay } from './customOverlay.js';
-
 export function from_main_updateGallery(base64, seed, tagsString){
     const keepGallery = globalThis.generate.keepGallery.getValue();
     if(!keepGallery)
@@ -8,23 +6,11 @@ export function from_main_updateGallery(base64, seed, tagsString){
 }
 
 export function from_main_updatePreview(base64){
-    let overlay = document.getElementById('cg-loading-overlay');
-    if (!overlay) {
-        overlay = customCommonOverlay().createLoadingOverlay();
+    // The live preview now renders inline over the main image area instead of a
+    // floating island.
+    if (globalThis.mainGallery?.updatePreviewImage) {
+        globalThis.mainGallery.updatePreviewImage(base64);
     }
-    const imgElement = overlay.querySelector('img');
-    if (imgElement) {
-        imgElement.src = base64;
-        imgElement.style.maxWidth = '256px';
-        imgElement.style.maxHeight = '384px';
-        imgElement.style.objectFit = 'contain';
-        imgElement.onerror = () => {
-            imgElement.src = globalThis.cachedFiles.loadingWait;
-            imgElement.style.maxWidth = '192px';
-            imgElement.style.maxHeight = '192px';
-            imgElement.onerror = null;
-        };
-    } 
 }
 
 export function from_main_customOverlayProgress(progress, totalProgress){

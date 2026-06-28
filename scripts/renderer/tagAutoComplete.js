@@ -140,7 +140,7 @@ function extractWordToSend(value, cursorPosition) {
 
 export function setupSuggestionSystem() {
     const textboxes = document.querySelectorAll(
-        '.myTextbox-prompt-common-textarea, .myTextbox-prompt-positive-textarea, .myTextbox-prompt-positive-right-textarea, .myTextbox-prompt-negative-textarea, .myTextbox-prompt-exclude-textarea'
+        '.myTextbox-prompt-common-textarea, .myTextbox-prompt-character-textarea, .myTextbox-prompt-action-textarea, .myTextbox-prompt-background-textarea, .myTextbox-prompt-positive-textarea, .myTextbox-prompt-positive-right-textarea, .myTextbox-prompt-negative-textarea, .myTextbox-prompt-exclude-textarea'
         //'.myTextbox-prompt-ai-textarea',
     );
 

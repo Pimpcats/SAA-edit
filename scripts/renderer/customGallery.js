@@ -173,59 +173,74 @@ export function setupGallery(containerId) {
         }
     };
 
-    globalThis.mainGallery.showLoading = function (loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix) {        
-        const loadingOverlay = customCommonOverlay().createLoadingOverlay(loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix);
-        const buttonOverlay = document.getElementById('cg-button-overlay');
+    // --- Inline generation preview (replaces the floating preview island) ---
+    // The live preview is shown as an overlay covering the main image area, so
+    // you watch it render in place and the finished image is revealed when the
+    // overlay hides.
+    let previewTimer = null;
+    let lastPreview = null;
 
-        // If the user locked the preview, pin it at its own saved spot/size
-        // every generation and don't make it draggable.
-        const previewLocked = localStorage.getItem('loadingPreviewLocked') === 'true';
-        const pinPos = JSON.parse(localStorage.getItem('loadingPreviewPos') || 'null');
-        if (previewLocked && pinPos) {
-            loadingOverlay.style.top = `${pinPos.top}px`;
-            loadingOverlay.style.left = `${pinPos.left}px`;
-            loadingOverlay.style.transform = 'none';
-            globalThis.mainGallery.isLoading = true;
-            return;
+    function getInlinePreview() {
+        let el = container.querySelector('.cg-inline-preview');
+        if (!el) {
+            el = document.createElement('div');
+            el.className = 'cg-inline-preview';
+            el.innerHTML = `
+                <img class="cg-inline-preview-image" alt="Generating preview">
+                <div class="cg-inline-preview-bar">
+                    <span class="cg-inline-preview-title"></span>
+                    <span class="cg-inline-preview-timer"></span>
+                </div>
+            `;
+            container.appendChild(el);
+            const img = el.querySelector('.cg-inline-preview-image');
+            if (img && lastPreview) img.src = lastPreview;
         }
+        return el;
+    }
 
-        const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
-        if (savedPosition?.top !== undefined && savedPosition.left !== undefined) {
-            loadingOverlay.style.top = `${savedPosition.top}px`;
-            loadingOverlay.style.left = `${savedPosition.left}px`;
-            loadingOverlay.style.transform = 'none';
-        } else if (buttonOverlay) {
-            const rect = buttonOverlay.getBoundingClientRect();
-            loadingOverlay.style.top = `${rect.top}px`;
-            loadingOverlay.style.left = `${rect.left}px`;
-            loadingOverlay.style.transform = 'none';
-        } else {
-            loadingOverlay.style.top = '20%';
-            loadingOverlay.style.left = '50%';
-            loadingOverlay.style.transform = 'translate(-50%, -20%)';
+    // Called with each progress frame from the backend.
+    globalThis.mainGallery.updatePreviewImage = function (base64) {
+        if (!globalThis.mainGallery.isLoading || !base64) return;
+        lastPreview = base64;
+        const el = getInlinePreview();
+        el.style.display = 'flex';
+        const img = el.querySelector('.cg-inline-preview-image');
+        if (img) {
+            img.src = base64;
+            img.onerror = () => { img.src = globalThis.cachedFiles.loadingWait; img.onerror = null; };
         }
-        addDragFunctionality(loadingOverlay, buttonOverlay);
+    };
+
+    globalThis.mainGallery.showLoading = function (loadingMessage, elapsedTimePrefix, elapsedTimeSuffix) {
+        lastPreview = globalThis.cachedFiles?.loadingWait || null;
+        const el = getInlinePreview();
+        el.style.display = 'flex';
+        const img = el.querySelector('.cg-inline-preview-image');
+        if (img) img.src = lastPreview;
+
+        const startTime = Date.now();
+        if (previewTimer) clearInterval(previewTimer);
+        previewTimer = setInterval(() => {
+            // Re-acquire (and recreate if a gallery re-render wiped it) so the
+            // overlay survives images being appended mid-batch.
+            const cur = getInlinePreview();
+            if (cur.style.display === 'none') cur.style.display = 'flex';
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const timerEl = cur.querySelector('.cg-inline-preview-timer');
+            const titleEl = cur.querySelector('.cg-inline-preview-title');
+            if (timerEl) timerEl.textContent = `${elapsedTimePrefix || 'Elapsed time:'} ${elapsed} ${elapsedTimeSuffix || 'seconds'}`;
+            if (titleEl) titleEl.textContent = `${globalThis.generate.loadingMessage || loadingMessage || ''}`;
+        }, 100);
+
         globalThis.mainGallery.isLoading = true;
     };
 
     globalThis.mainGallery.hideLoading = function (errorMessage, copyMessage) {
-        const loadingOverlay = document.getElementById('cg-loading-overlay');
-        const buttonOverlay = document.getElementById('cg-button-overlay');
-        if (loadingOverlay) {
-            if (loadingOverlay.dataset.timerInterval) {
-                clearInterval(loadingOverlay.dataset.timerInterval);
-            }
-            if (buttonOverlay && !buttonOverlay.classList.contains('minimized')) {
-                const rect = loadingOverlay.getBoundingClientRect();
-                buttonOverlay.style.left = '0';
-                buttonOverlay.style.top = '0';
-                buttonOverlay.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
-                if (buttonOverlay.updateDragPosition) {
-                    buttonOverlay.updateDragPosition(rect.left, rect.top);
-                }
-            }
-            loadingOverlay.remove();
-        }
+        if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
+        lastPreview = null;
+        const el = container.querySelector('.cg-inline-preview');
+        if (el) el.remove();
         if ('success' !== errorMessage) {
             console.error('Got Error from backend:', copyMessage);
             customCommonOverlay().createErrorOverlay(errorMessage, copyMessage);
