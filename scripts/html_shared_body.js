@@ -99,7 +99,7 @@ export const sharedBodyHTML = `
               <div></div>
               <div></div>
               <div class="system-settings-header-span">
-                <span id="system-settings-span"></span>
+                <span id="system-settings-span">System Settings</span>
                 <img id="system-settings-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
               </div>
             </div>
@@ -139,7 +139,7 @@ export const sharedBodyHTML = `
               <div class="generate-hires-fix"></div>
               <div class="hires-fix-random-seed"></div>              
               <div class="highres-fix-header-span">
-                <span id="highres-fix-span"></span>
+                <span id="highres-fix-span">Hires Fix</span>
                 <img id="highres-fix-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
               </div>
             </div>
@@ -162,7 +162,7 @@ export const sharedBodyHTML = `
               <div class="generate-refiner"></div>
               <div class="refiner-addnoise"></div>              
               <div class="refiner-header-span">
-                <span id="refiner-span"></span>
+                <span id="refiner-span">Refiner</span>
                 <img id="refiner-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
               </div>
             </div>
@@ -181,7 +181,7 @@ export const sharedBodyHTML = `
               <div class="regional-condition-trigger-dummy"></div>
               <div class="regional-condition-swap"></div>
               <div class="regional-condition-header-span">
-                <span id="regional-condition-span"></span>
+                <span id="regional-condition-span">Regional Condition</span>
                 <img id="regional-condition-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
               </div>
             </div>
@@ -199,7 +199,7 @@ export const sharedBodyHTML = `
 
           <div class="image-infobox-container">
             <div class="image-infobox-header">
-              <span id="image-infobox-span"></span>
+              <span id="image-infobox-span">Image Info</span>
               <img id="image-infobox-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
             </div>
             <div class="image-infobox-main"></div>

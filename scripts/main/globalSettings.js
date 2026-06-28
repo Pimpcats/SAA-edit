@@ -13,18 +13,18 @@ const defaultSettings = {
     "ws_addr": '0.0.0.0',
     "ws_port": 51028,
 
-    "setup_wizard": true,
+    "setup_wizard": false,
     "language": "en-US",
     "css_style": "dark",
     "rightToleft": true,
     
     "model_path_comfyui": "",
-    "model_path_webui": "",
+    "model_path_webui": "C:\\SD\\SDXL\\models\\Stable-diffusion",
     "webui_auth" : "user:pass",
     "webui_auth_enable" : "OFF",
 
-    "model_filter": false,
-    "model_filter_keyword": "waiIllustrious,waiNSFW,waiSHUFFLENOOB",
+    "model_filter": true,
+    "model_filter_keyword": "",
     "search_modelinsubfolder": true,
     
     "character1": "Random",
@@ -71,7 +71,7 @@ const defaultSettings = {
     "height": 1360,
     "batch": 3,
     "api_image_landscape": false,
-    "scroll_to_last": false,
+    "scroll_to_last": true,
     "keep_gallery": true,
     
     "custom_prompt": "",
@@ -90,7 +90,7 @@ const defaultSettings = {
     "background_toggles": [],
     "background_toggles_seeded": false,
     "civitai_api_key": "",
-    "hidden_bars": [],
+    "hidden_bars": ["highres-fix-container", "refiner-container", "controlnet-container", "adetailer-container", "regional-condition-container", "jsonlist-container", "custom-toggles-container", "model-settings-container", "system-settings-container"],
     "ui_background_image": "",
     "mira_itu_enable": false,
 
@@ -106,7 +106,7 @@ const defaultSettings = {
     "ai_prompt_role": 1,
     "ai_prompt_preview": true,
     
-    "api_interface": "None",
+    "api_interface": "WebUI",
     "api_preview_refresh_time": 1,
     "api_addr": "127.0.0.1:7860",
     

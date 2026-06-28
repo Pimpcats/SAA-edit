@@ -477,9 +477,10 @@ function createDropdown({
         setSlotValue: function(index, value) {
             if (index < 0 || index >= dropdownCount) return false;
             const opts = options[index] || [];
-            const v = String(value).toLowerCase();
-            const match = opts.find(o => String(o.value).toLowerCase() === v)
-                || opts.find(o => String(o.key).toLowerCase() === v);
+            const norm = (s) => String(s).toLowerCase().replaceAll('_', ' ').replace(/\s+/g, ' ').trim();
+            const v = norm(value);
+            const match = opts.find(o => norm(o.value) === v)
+                || opts.find(o => norm(o.key) === v);
             if (!match) return false;
             selectedKeys[index] = match.key;
             selectedValues[index] = match.value;

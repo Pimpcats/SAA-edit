@@ -69,6 +69,34 @@ export function setupImageUploadOverlay() {
     });
     uploadOverlay.appendChild(closeButton);
 
+    // Resize handle so the drop/preview window can be resized.
+    const overlayResizeHandle = document.createElement('div');
+    overlayResizeHandle.className = 'cg-resize-handle';
+    uploadOverlay.appendChild(overlayResizeHandle);
+    overlayResizeHandle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const rect = uploadOverlay.getBoundingClientRect();
+        const sw = rect.width;
+        const sh = rect.height;
+        const onMove = (ev) => {
+            uploadOverlay.style.minWidth = '0';
+            uploadOverlay.style.minHeight = '0';
+            uploadOverlay.style.maxWidth = 'none';
+            uploadOverlay.style.maxHeight = 'none';
+            uploadOverlay.style.width = `${Math.max(360, sw + (ev.clientX - startX))}px`;
+            uploadOverlay.style.height = `${Math.max(280, sh + (ev.clientY - startY))}px`;
+        };
+        const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    });
+
     defaultUploadOverlaySize();
 
     const svgIcon = document.createElement('div');
@@ -254,6 +282,15 @@ export function setupImageUploadOverlay() {
         hintContainer.style.display = 'flex';
         svgIcon.style.opacity = '0.1';
 
+        // MiraITU bottom-half only appears when enabled in Settings.
+        const miraOn = !!globalThis.globalSettings.mira_itu_enable;
+        bottomHint.style.display = miraOn ? '' : 'none';
+        if (!miraOn) {
+            topHint.classList.add('active');
+            bottomHint.classList.remove('active');
+            return;
+        }
+
         const rect = uploadOverlay.getBoundingClientRect();
         const offsetY = e.clientY - rect.top;
         const threshold = rect.height / 2;
@@ -419,16 +456,22 @@ export function setupImageUploadOverlay() {
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'metadata-buttons';
 
-        const label = LANG.image_info_send_all || 'Paste All';
-        const sendAllButton = document.createElement('button');
-        sendAllButton.className = 'send-metadata';
-        sendAllButton.textContent = label;
-        sendAllButton.addEventListener('click', () => {
-            sendPrompt(globalThis.currentImageMetadata, 'all');
-            sendAllButton.textContent = LANG.image_info_send_tags_sent || 'Sent';
-            setTimeout(() => { sendAllButton.textContent = label; }, 2000);
-        });
-        buttonContainer.appendChild(sendAllButton);
+        const makeBtn = (label, opts) => {
+            const btn = document.createElement('button');
+            btn.className = 'send-metadata';
+            btn.textContent = label;
+            btn.addEventListener('click', () => {
+                sendPrompt(globalThis.currentImageMetadata, 'all', opts);
+                btn.textContent = LANG.image_info_send_tags_sent || 'Sent';
+                setTimeout(() => { btn.textContent = label; }, 2000);
+            });
+            return btn;
+        };
+
+        // Default: paste everything but keep a random seed (-1).
+        buttonContainer.appendChild(makeBtn(LANG.image_info_paste_random_seed || 'Paste settings and random seed', { randomSeed: true }));
+        // Also offer: paste everything including the image's seed.
+        buttonContainer.appendChild(makeBtn(LANG.image_info_paste_with_seed || 'Paste all settings and seed', { randomSeed: false }));
 
         return buttonContainer;
     }
@@ -551,8 +594,8 @@ export function setupImageUploadOverlay() {
         }
     }
 
-    function sendPrompt(parsedMetadata, mode = 'all') {
-        applyImageSettings(parsedMetadata, mode);
+    function sendPrompt(parsedMetadata, mode = 'all', opts = {}) {
+        applyImageSettings(parsedMetadata, mode, opts);
     }
 
     // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -568,11 +611,7 @@ export function setupImageUploadOverlay() {
                            parsedMetadata.negativePrompt || 
                            parsedMetadata.otherParams;        
         
-        createImageTagger(metadataContainer, cachedImage);
-
-        if(apiInterface !== 'None' && modelType === 'Checkpoint' ) {
-            metadataContainer.appendChild(createControlNetButtons(apiInterface, cachedImage, previewImg));        
-        }
+        // Tagger and ControlNet rows removed from the drop overlay.
 
         const metadataDisplay = document.createElement('div');
         metadataDisplay.className = `metadata-custom-textbox-data`;

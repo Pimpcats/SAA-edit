@@ -204,6 +204,8 @@
         "image_info_send_prompts": "Paste Prompts",
         "image_info_send_settings": "Paste Settings",
         "image_info_send_all": "Paste All",
+        "image_info_paste_random_seed": "Paste settings and random seed",
+        "image_info_paste_with_seed": "Paste all settings and seed",
         "auto_infinite_on": "Auto-generate (infinite)",
         "auto_infinite_off": "Turn off auto-generate",
         "bars_menu_title": "Show / hide bars",

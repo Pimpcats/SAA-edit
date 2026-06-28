@@ -46,34 +46,39 @@ function matchFromList(name, list) {
         || null;
 }
 
+function escapeRegex(s) {
+    return s.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
 // Detect known characters in the prompt and select the matching slots above.
+// Sets matched characters into the first slots and clears the rest, so leftover
+// "Random"/old selections don't linger.
 function applyCharactersFromPrompt(positivePrompt) {
-    if (!positivePrompt || !globalThis.characterList?.setSlotValue) return;
+    const cl = globalThis.characterList;
+    if (!positivePrompt || !cl?.setSlotValue) return;
     const chars = globalThis.cachedFiles?.characters || {};
-    const lower = positivePrompt.toLowerCase();
+    const lower = ` ${positivePrompt.toLowerCase()} `;
+
     const matches = [];
     const seen = new Set();
     for (const tag of Object.values(chars)) {
         if (!tag) continue;
-        const t = String(tag).toLowerCase();
-        if (t.length < 4 || seen.has(t)) continue;
-        const idx = lower.indexOf(t);
-        if (idx === -1) continue;
-        const before = idx === 0 ? '' : lower[idx - 1];
-        const after = lower[idx + t.length] || '';
-        const okBefore = before === '' || before === ',' || before === ' ' || before === '(';
-        const okAfter = after === '' || after === ',' || after === ':' || after === ')' || after === ' ';
-        if (okBefore && okAfter) {
-            matches.push({ tag, pos: idx });
+        const t = String(tag).toLowerCase().trim();
+        if (t.length < 3 || seen.has(t)) continue;
+        // delimiter-bounded match so partial tags don't false-match
+        const re = new RegExp(`(^|[,(\\s])${escapeRegex(t)}([,):\\s]|$)`);
+        const m = re.exec(lower);
+        if (m) {
+            matches.push({ tag, pos: m.index });
             seen.add(t);
-            if (matches.length >= 12) break;
         }
     }
     if (matches.length === 0) return;
     matches.sort((a, b) => a.pos - b.pos);
-    const found = matches.slice(0, 3).map(m => m.tag);
+
+    // The first 3 dropdowns are characters (slot 4 is original-character).
     for (let i = 0; i < 3; i++) {
-        globalThis.characterList.setSlotValue(i, found[i] || 'none');
+        cl.setSlotValue(i, matches[i] ? matches[i].tag : 'none');
     }
 }
 
@@ -96,10 +101,16 @@ export function applyPrompts(parsedMetadata) {
     applyCharactersFromPrompt(positivePrompt);
 }
 
-export function applySettings(parsedMetadata) {
+export function applySettings(parsedMetadata, opts = {}) {
     const map = buildParamMap(parsedMetadata.otherParams);
 
-    if (map['seed'] !== undefined) globalThis.generate.seed.setValue(map['seed']);
+    // Seed: keep -1 (random) by default; only apply the image's seed when
+    // explicitly requested.
+    if (opts.randomSeed) {
+        globalThis.generate.seed.setValue(-1);
+    } else if (map['seed'] !== undefined) {
+        globalThis.generate.seed.setValue(map['seed']);
+    }
     if (map['cfg scale'] !== undefined) globalThis.generate.cfg.setValue(map['cfg scale']);
     if (map['steps'] !== undefined) globalThis.generate.step.setValue(map['steps']);
 
@@ -133,11 +144,11 @@ export function applySettings(parsedMetadata) {
     }
 }
 
-// mode: 'prompts' | 'settings' | 'all'
-export function applyImageSettings(parsedMetadata, mode = 'all') {
+// mode: 'prompts' | 'settings' | 'all'; opts.randomSeed keeps seed at -1.
+export function applyImageSettings(parsedMetadata, mode = 'all', opts = {}) {
     if (!parsedMetadata) return;
     if (mode === 'prompts' || mode === 'all') applyPrompts(parsedMetadata);
-    if (mode === 'settings' || mode === 'all') applySettings(parsedMetadata);
+    if (mode === 'settings' || mode === 'all') applySettings(parsedMetadata, opts);
     if (globalThis.generate?.landscape) globalThis.generate.landscape.setValue(false);
     if (globalThis.ai?.ai_select) globalThis.ai.ai_select.setValue(0);
 }
