@@ -1,5 +1,8 @@
-# Character Select SAA
-This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI(A1111) API support.    
+# Character Select SAA — SAA-edit fork
+This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI(A1111) API support.
+
+> [!NOTE]
+> **This is a customized fork** of [character_select_stand_alone_app](https://github.com/mirabarukaso/character_select_stand_alone_app) tuned for a WebUI (A1111) workflow. It adds a segmented prompt, extra view-tag categories, a LoRA library browser, auto-save with embedded UI state, and many UI changes. See **[What's different in this fork](#whats-different-in-this-fork)** below. The rest of this document describes the original upstream features, most of which still apply.
 
 > [!IMPORTANT]
 > Create your own thumb [SAA Thumb Generator](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/scripts/python/thumb-generator/README.md)
@@ -30,6 +33,58 @@ This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/Web
 | Custom VAE for SDXL | Yes | Yes | Yes |
 
 *Try Online Character Select Simple Advanced App* [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)             
+
+------
+# What's different in this fork
+
+This fork keeps the upstream feature set but adds and changes the following. It is tuned for **WebUI (A1111)** by default.
+
+## Prompt area
+- **Segmented prompt.** The positive prompt is split into three labeled boxes — **Character / Action / Background** — that combine live into one **All Prompts** box (the box that actually drives generation). Editing a segment recomposes the main box; the main box is still directly editable.
+- **Renamable labels.** Double-click any prompt-box label (the three segments or the main "All Prompts" box) to rename it. Custom names persist; blank resets to the default.
+- **Autocomplete** works in all of the prompt boxes, including the new segments.
+
+## View-tag dropdowns
+- Expanded **Angle / Camera / Background / Style** lists with real danbooru tags.
+- Three new categories: **Position**, **Expression**, **Clothing** (7 dropdowns total). The row wraps to multiple rows with a minimum bar width so nothing is clipped.
+- **View Tags editor:** in the Backgrounds panel, **✎ Edit View Tags** opens a popup with a category selector to add/edit/remove entries for any of the seven lists.
+
+## Image drop & "send from gallery"
+- **Drag-drop paste:** dropping an image shows two buttons — **Paste settings and random seed** (default; keeps seed at -1) and **Paste all settings and seed** (preserves the image's seed). The drop popup closes after you pick one.
+- Pasting also restores the **top character bar** (all four slots) and the **view-tag dropdowns** inferred from the prompt, and sets the **Landscape** checkbox from the image orientation.
+- The drag-drop overlay no longer shows the Tagger / ControlNet / 512 controls. **MiraITU** only appears there when enabled in the settings panel.
+- **Gallery toolbar** (top of the gallery): **Seed** (copy + load seed), **Send prompts** (apply only the prompts/characters/view-tags), **Send all settings** (apply everything).
+
+## Auto-save with embedded state (exact restore)
+- Every generation is **saved automatically and silently** to a folder (default: an `outputs` folder next to the app; configurable in Settings → Features, with a Browse picker).
+- The saved PNG carries a custom `saa-state` chunk with the **exact** view-tag selections (including `random`/`none`), character slots, and the Character/Action/Background split — so dropping that image back in restores them precisely (not just what the prompt text implies). UTF-8 safe for Japanese/Chinese character names.
+- When auto-save is on, A1111 is told **not** to save its own copy, so you get exactly one file per generation.
+- You can also save on demand: right-click a gallery image → **Save image (with settings)**.
+
+## Generation UX
+- **Inline preview:** the live preview renders over the main gallery image and reveals the finished image when done (the old floating preview island is removed).
+- **Docked, collapsible Generate island** is the default home for Create Image / Batch; a Settings toggle switches it to the floating version.
+- **Infinite auto-generate:** right-click the Create Image button to loop until turned off.
+- **Batch seed variations:** right-click the Batch button to generate close-but-not-identical variations of the current seed (A1111 variation seed / subseed).
+- **Ctrl+Enter** (or Cmd+Enter) triggers Create Image.
+- Finishing an image no longer scrolls the page when you're scrolled up.
+
+## Characters & emphasis
+- **Add Character tab:** search danbooru tags, fuzzy duplicate check, append to `wai_characters.csv`.
+- **Character slot swap:** swap characters between slots.
+- **Emphasize multiple characters:** editable mini checkmark tag bars (default **1girl + 1guy**); checked tags are always injected when enabled, with a live status line.
+- **Custom prompt toggles:** clickable named chips that inject `((( tag :1 )))` into the prompt.
+
+## LoRA library
+- **civitai.red library browser:** matches local LoRAs by SHA256 hash, shows a folder hierarchy with preview images, and right-click loads a LoRA into a slot and applies its settings. The civitai API key lives in Settings with a green **Test** button.
+
+## Settings & setup
+- **Settings panel (gear):** show/hide individual bars + Restore all, a custom UI background image, and feature toggles (MiraITU, floating buttons, auto-save + folder).
+- **Delete settings presets** (double-confirm) from the presets dropdown.
+- **Default setup** skips the first-run wizard with sensible defaults (WebUI, model path `C:\SD\SDXL\models\Stable-diffusion`, `127.0.0.1:7860`, model-name filters on, AI interface None, scroll-to-latest on; Hires Fix / Refiner / ControlNet / ADetailer / Regional / JSON-CSV / Custom Toggles / Model & System settings bars unchecked by default).
+- Resizable app window and one-click launchers (`Start-SAA.bat`, `start-saa.sh`, `start-saa.command`, `SAA-edit.desktop`).
+
+------
 
 ## Install and run
 > [!IMPORTANT]
@@ -322,9 +377,11 @@ To apply the `Artist` tag in `Anima Model`, you need to add an `@` symbol at the
 ## Image info
 Drag and drop your image into SAA window, supports Png/Jpeg/Webp.     
 Works both for WebUI(A1111) and ComfyUI(with image save node from ComfyUI_Mira).      
-Double click the image to close.     
-The `Send` button will override `Common Prompt`, `Negative Prompt`, `Width & Height`, `CFG`, `Setp` and `Seed`.    
-LoRA in `Common Prompt` also works if you have the same one. If you don't like LoRA in prompts, try `Send LoRA to Slot`.      
+
+> [!NOTE]
+> **Fork change:** dropping an image now shows two buttons — **Paste settings and random seed** (default, keeps seed at -1) and **Paste all settings and seed** (preserves the image's seed). Either one closes the popup. Pasting applies the prompt, settings (CFG, Steps, Width/Height, sampler/scheduler, model, Hires Fix), the **top character bar** (all four slots) and **view-tag dropdowns** inferred from the prompt, plus the **Landscape** checkbox from the image orientation. If the image was saved by this app, the exact view-tag/character/segment state is restored from the embedded `saa-state` chunk.
+
+LoRA in the prompt also works if you have the same one. If you don't like LoRA in prompts, try `Send LoRA to Slot`.      
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/imageInfo.png" width=45%>   
 
@@ -345,19 +402,19 @@ Right click on `AI prompt` to get AI promot without generate.
 Once got result from Remote/Local AI, an information overlay will show in screen, switch AI rule to `Last` to keep  the result in later generate.    
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/aiPromptTest.png" width=45%>
 
-**Copy Image/Metadata**     
-Right click on `Gallery` to copy current image or copy the metadata to clipboard.     
-ComfyUI with Image Saver node will output an a1111 like metadata.      
-Copy image based on convert base64 data back to png, but metadata trimed by chromium core, it's impossible to put them back with chromium API, a C based lib could solve that problem, but it's not worth to do. If you do need the original image, check from the relevant (ComfyUI/WebUI) output folder.      
-For SAAC: Drag and drop image from browser to local folder or `save as` from browser right click.        
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/copyImage.png" width=35%>
+**Gallery right-click (fork change)**     
+Right-click a gallery image for:
+- **Set as desktop background** — sets the OS wallpaper from that image.
+- **Save image (with settings)** — writes the PNG to disk with the embedded `saa-state` chunk, so dropping it back in restores your exact view-tag/character/segment selections.
+
+(Auto-save already writes every generation to disk with the embedded state, so you usually don't need to save manually.)
 
 **Send LoRA to Slot**     
 Right click on `Common` and `Positive` to send text form LoRA to LoRA Slot.     
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/sendLoRAtoSlot.png" width=35%>
 
 ***The Top buttons***     
-From Left to right: Save Settings, Reload Model List, Refresh page, Right to Left, Theme Switch.     
+From Left to right: Save Settings, Reload Model List, Refresh page, Right to Left, Theme Switch, and (fork) the **⚙ Settings panel** (show/hide bars + Restore all, custom UI background image, and feature toggles for MiraITU, floating buttons, and auto-save + folder).     
 
 ------
 # AI prompt
