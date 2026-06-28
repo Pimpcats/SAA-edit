@@ -49,7 +49,7 @@
         "prompt_character": "Character",
         "prompt_action": "Action",
         "prompt_background": "Background",
-        "prompt_main": "Main prompt (combined)",
+        "prompt_main": "All Prompts",
         "api_prompt": "Positive Prompt (Tail)",
         "api_neg_prompt": "Negative Prompt",
         "batch_generate_rule": "AI rule for Batch generate: ",

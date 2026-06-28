@@ -311,6 +311,7 @@ export function updateSettings() {
     if (((SETTINGS.prompt_character || '') + (SETTINGS.prompt_action || '') + (SETTINGS.prompt_background || '')).trim()) {
         globalThis.recomposeCombinedPrompt?.();
     }
+    globalThis.applyPromptLabels?.();
     globalThis.prompt.positive.setValue(SETTINGS.api_prompt);
     globalThis.prompt.positive_right.setValue(SETTINGS.regional_api_prompt_right);
     globalThis.prompt.negative.setValue(SETTINGS.api_neg_prompt);

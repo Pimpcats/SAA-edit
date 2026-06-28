@@ -381,6 +381,17 @@ html, body {
 }
 .cg-inline-preview-timer { opacity: 0.7; font-variant-numeric: tabular-nums; }
 
+.prompt-label-edit {
+    font: inherit;
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid #1ce088;
+    background: rgba(0,0,0,0.3);
+    color: inherit;
+    width: 12em;
+    max-width: 100%;
+}
+
 /* Segmented prompt: Character / Action / Background inputs + combined main box */
 #prompt-text-container .myTextbox-prompt-character-header,
 #prompt-text-container .myTextbox-prompt-action-header,
