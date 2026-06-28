@@ -168,6 +168,52 @@ export function setupBarsMenu() {
         saveRow.appendChild(saveSpan);
         panel.appendChild(saveRow);
 
+        // Auto-save folder (blank = the app's install/outputs folder).
+        const dirRow = document.createElement('div');
+        dirRow.className = 'settings-panel-dirrow';
+        const dirInput = document.createElement('input');
+        dirInput.type = 'text';
+        dirInput.className = 'settings-dir-input';
+        dirInput.value = globalThis.globalSettings.auto_save_dir || '';
+        dirInput.placeholder = LANG.settings_auto_save_dir_ph || 'Default: install folder \\ outputs';
+        dirInput.addEventListener('change', () => {
+            globalThis.globalSettings.auto_save_dir = dirInput.value.trim();
+        });
+        dirRow.appendChild(dirInput);
+
+        if (!globalThis.inBrowser && globalThis.api?.pickSaveFolder) {
+            const browseBtn = document.createElement('button');
+            browseBtn.className = 'bars-menu-restore';
+            browseBtn.textContent = LANG.settings_auto_save_browse || 'Browse…';
+            browseBtn.addEventListener('click', async () => {
+                try {
+                    const res = await globalThis.api.pickSaveFolder();
+                    if (res?.ok && res.path) {
+                        dirInput.value = res.path;
+                        globalThis.globalSettings.auto_save_dir = res.path;
+                    }
+                } catch (err) { console.error(CAT, err); }
+            });
+            dirRow.appendChild(browseBtn);
+        }
+
+        const defBtn = document.createElement('button');
+        defBtn.className = 'bars-menu-restore';
+        defBtn.textContent = LANG.settings_auto_save_default || 'Default';
+        defBtn.addEventListener('click', () => {
+            dirInput.value = '';
+            globalThis.globalSettings.auto_save_dir = '';
+        });
+        dirRow.appendChild(defBtn);
+        panel.appendChild(dirRow);
+
+        // Show the resolved default folder as the placeholder.
+        if (!globalThis.inBrowser && globalThis.api?.getDefaultSaveDir) {
+            globalThis.api.getDefaultSaveDir()
+                .then((d) => { if (d) dirInput.placeholder = `${LANG.settings_auto_save_default_hint || 'Default'}: ${d}`; })
+                .catch(() => {});
+        }
+
         // --- Show / hide bars ---
         panel.appendChild(sectionTitle(LANG.bars_menu_title || 'Show / hide bars'));
         const hidden = new Set(getHidden());

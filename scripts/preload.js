@@ -98,6 +98,8 @@ contextBridge.exposeInMainWorld('api', {
   civitaiTestKey: async (apiKey) => ipcRenderer.invoke('civitai-test-key', apiKey),
   setWallpaper: async (dataUrl) => ipcRenderer.invoke('set-wallpaper', dataUrl),
   saveGeneratedImage: async (dataUrl, filename, dir) => ipcRenderer.invoke('save-generated-image', dataUrl, filename, dir),
+  getDefaultSaveDir: async () => ipcRenderer.invoke('get-default-save-dir'),
+  pickSaveFolder: async () => ipcRenderer.invoke('pick-save-folder'),
   // downloadFiles
   downloadURL: async () => ipcRenderer.invoke('download-url', url, filePath),
   // modelList

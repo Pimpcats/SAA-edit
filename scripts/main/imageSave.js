@@ -1,4 +1,4 @@
-import { ipcMain, app } from 'electron';
+import { ipcMain, app, dialog } from 'electron';
 import * as fs from 'node:fs';
 import path from 'node:path';
 
@@ -42,4 +42,19 @@ function saveGeneratedImage(dataUrl, filename, dir) {
 export function setupImageSave() {
     ipcMain.handle('save-generated-image', async (event, dataUrl, filename, dir) =>
         saveGeneratedImage(dataUrl, filename, dir));
+
+    // The resolved default folder (for showing in the settings UI).
+    ipcMain.handle('get-default-save-dir', async () => path.join(installDir(), 'outputs'));
+
+    // Native folder picker for choosing the auto-save directory.
+    ipcMain.handle('pick-save-folder', async () => {
+        try {
+            const res = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] });
+            if (res.canceled || !res.filePaths?.length) return { ok: false };
+            return { ok: true, path: res.filePaths[0] };
+        } catch (err) {
+            console.error(CAT, err.message);
+            return { ok: false, error: err.message };
+        }
+    });
 }
