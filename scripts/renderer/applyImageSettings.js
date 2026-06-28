@@ -120,8 +120,25 @@ export function applySettings(parsedMetadata, opts = {}) {
         const sizeMatch = map['size'].match(/(\d+)\s*x\s*(\d+)/i);
         if (sizeMatch) { width = sizeMatch[1]; height = sizeMatch[2]; }
     }
-    if (width) globalThis.generate.width.setValue(width);
-    if (height) globalThis.generate.height.setValue(height);
+    if (width && height) {
+        const w = Number(width);
+        const h = Number(height);
+        // The Landscape checkbox swaps the width/height sliders at generation
+        // time, so set the box to match the image and lay the sliders out so
+        // the final output keeps the image's exact dimensions.
+        const landscape = w > h;
+        if (globalThis.generate?.landscape) globalThis.generate.landscape.setValue(landscape);
+        if (landscape) {
+            globalThis.generate.width.setValue(h);
+            globalThis.generate.height.setValue(w);
+        } else {
+            globalThis.generate.width.setValue(w);
+            globalThis.generate.height.setValue(h);
+        }
+    } else {
+        if (width) globalThis.generate.width.setValue(width);
+        if (height) globalThis.generate.height.setValue(height);
+    }
 
     const { sampler, scheduler } = resolveSamplerScheduler(map['sampler'], map['schedule type']);
     if (sampler) globalThis.generate.sampler.updateDefaults(sampler);
@@ -149,6 +166,6 @@ export function applyImageSettings(parsedMetadata, mode = 'all', opts = {}) {
     if (!parsedMetadata) return;
     if (mode === 'prompts' || mode === 'all') applyPrompts(parsedMetadata);
     if (mode === 'settings' || mode === 'all') applySettings(parsedMetadata, opts);
-    if (globalThis.generate?.landscape) globalThis.generate.landscape.setValue(false);
+    // (landscape is set inside applySettings based on the image's orientation)
     if (globalThis.ai?.ai_select) globalThis.ai.ai_select.setValue(0);
 }
