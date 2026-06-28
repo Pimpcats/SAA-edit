@@ -88,7 +88,7 @@ const defaultSettings = {
     "prompt_ban" : "",
 
     "multi_char_emphasis_enable": false,
-    "multi_char_emphasis_tag": "2girls",
+    "multi_char_emphasis_tag": "1girl, 1guy",
     "multi_char_emphasis_list": [],
     "multi_char_emphasis_seeded": false,
 
