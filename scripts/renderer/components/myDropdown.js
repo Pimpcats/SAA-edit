@@ -719,16 +719,22 @@ function createDropdown({
         _updateOptionsPosition: function(index) {
             if (!activeInput) activeInput = inputs[index];
             const inputRect = activeInput.getBoundingClientRect();
-            const actualOptionsHeight = 30 * height;
-            let maxHeight = Math.min(actualOptionsHeight, globalThis.innerHeight * 0.8);
-            const spaceBelow = globalThis.innerHeight - inputRect.bottom;
-            const spaceAbove = inputRect.top;
-            const showAbove = spaceBelow < maxHeight && spaceAbove >= maxHeight;
-    
-            if(showAbove){
-                maxHeight = Math.min(optionsList.scrollHeight, globalThis.innerHeight * 0.8);
-            }
-    
+            const margin = 10;
+
+            // How tall the list would like to be (real content height, capped by
+            // the configured row budget), then clamped to the space actually
+            // available above/below the field so the list never runs off the
+            // screen — the popup scrolls internally instead.
+            const contentHeight = optionsList.scrollHeight || (30 * height);
+            const desired = Math.min(30 * height, contentHeight);
+            const spaceBelow = globalThis.innerHeight - inputRect.bottom - margin;
+            const spaceAbove = inputRect.top - margin;
+
+            // Open in whichever direction can show more, preferring below.
+            const showAbove = spaceBelow < desired && spaceAbove > spaceBelow;
+            const available = showAbove ? spaceAbove : spaceBelow;
+            const maxHeight = Math.max(120, Math.min(desired, available));
+
             const styles = {
                 width: `${Math.min(inputRect.width, 600)}px`,
                 left: `${inputRect.left + globalThis.scrollX}px`,
@@ -738,11 +744,11 @@ function createDropdown({
                 zIndex: '10002',
                 maxHeight: `${maxHeight}px`
             };
-    
-            if (showAbove && styles.top < globalThis.scrollY) {
-                styles.top = globalThis.scrollY;
+
+            if (showAbove && Number.parseFloat(styles.top) < globalThis.scrollY) {
+                styles.top = `${globalThis.scrollY}px`;
             }
-    
+
             Object.assign(optionsList.style, styles);
         }
     };
