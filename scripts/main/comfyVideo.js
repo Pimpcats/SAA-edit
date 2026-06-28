@@ -1,14 +1,25 @@
 import { app, ipcMain } from 'electron';
 import * as fs from 'node:fs';
 import path from 'node:path';
+import WebSocket from 'ws';
 import { getGlobalSettings } from './globalSettings.js';
 
 const CAT = '[comfyVideo]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
 const WF_DIR = path.join(appPath, 'data', 'video_workflows');
+const SCENES_PATH = path.join(appPath, 'data', 'video_scenes.json');
 
 function comfyBase(addr) {
     return /^https?:\/\//i.test(addr) ? addr.replace(/\/$/, '') : `http://${addr}`;
+}
+
+function saveScenes(scenes) {
+    try {
+        fs.writeFileSync(SCENES_PATH, JSON.stringify(scenes, null, 4), 'utf8');
+        return { ok: true };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
 }
 
 // ---- Workflow templates (API-format ComfyUI graphs) -------------------------
@@ -189,7 +200,30 @@ function saveVideo(buf, filename) {
     }
 }
 
-async function runVideo(params) {
+// Listen to ComfyUI's websocket for sampling progress and forward it.
+function openProgressWs(addr, clientId, onProgress) {
+    try {
+        const wsUrl = `${comfyBase(addr).replace(/^http/i, 'ws')}/ws?clientId=${encodeURIComponent(clientId)}`;
+        const ws = new WebSocket(wsUrl);
+        ws.on('message', (data) => {
+            try {
+                const msg = JSON.parse(data.toString());
+                if (msg.type === 'progress' && msg.data) {
+                    onProgress?.({ value: msg.data.value, max: msg.data.max });
+                } else if (msg.type === 'executing' && msg.data && 'node' in msg.data) {
+                    onProgress?.({ node: msg.data.node });
+                }
+            } catch { /* ignore */ }
+        });
+        ws.on('error', () => { /* progress is best-effort */ });
+        return ws;
+    } catch {
+        return null;
+    }
+}
+
+async function runVideo(params, onProgress) {
+    let ws = null;
     try {
         const S = getGlobalSettings();
         const addr = params.addr || S.api_addr;
@@ -198,9 +232,12 @@ async function runVideo(params) {
         if (!graph) return { ok: false, error: 'workflow not found — import your WAN API JSON first' };
         if (!params.image) return { ok: false, error: 'no input image' };
 
+        const clientId = params.clientId || 'saa-video';
+        ws = openProgressWs(addr, clientId, onProgress);
+
         const uploaded = await uploadImage(addr, params.image);
         const patched = patchGraph(graph, params, uploaded.name);
-        const promptId = await submit(addr, patched, params.clientId || 'saa-video');
+        const promptId = await submit(addr, patched, clientId);
         const out = await pollResult(addr, promptId, params.timeoutMs || 1000 * 60 * 20);
         const buf = await fetchView(addr, out);
 
@@ -222,6 +259,8 @@ async function runVideo(params) {
     } catch (err) {
         console.error(CAT, err.message);
         return { ok: false, error: err.message };
+    } finally {
+        try { if (ws) ws.close(); } catch { /* ignore */ }
     }
 }
 
@@ -229,7 +268,9 @@ export function setupComfyVideo() {
     ipcMain.handle('comfy-video-list', async () => listWorkflows());
     ipcMain.handle('comfy-video-get', async (event, name) => loadWorkflowGraph(name));
     ipcMain.handle('comfy-video-save', async (event, name, graph) => saveWorkflow(name, graph));
-    ipcMain.handle('comfy-video-run', async (event, params) => runVideo(params));
+    ipcMain.handle('comfy-video-save-scenes', async (event, scenes) => saveScenes(scenes));
+    ipcMain.handle('comfy-video-run', async (event, params) =>
+        runVideo(params, (p) => { try { event.sender.send('comfy-video-progress', p); } catch { /* ignore */ } }));
 }
 
-export { listWorkflows, loadWorkflowGraph, saveWorkflow, runVideo };
+export { listWorkflows, loadWorkflowGraph, saveWorkflow, saveScenes, runVideo };

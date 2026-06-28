@@ -27,6 +27,7 @@ export function setupVideoTab(containerId) {
         list: () => (globalThis.api?.comfyVideoList ? globalThis.api.comfyVideoList() : Promise.resolve([])),
         get: (n) => (globalThis.api?.comfyVideoGet ? globalThis.api.comfyVideoGet(n) : Promise.resolve(null)),
         save: (n, g) => (globalThis.api?.comfyVideoSave ? globalThis.api.comfyVideoSave(n, g) : Promise.resolve(null)),
+        saveScenes: (s) => (globalThis.api?.comfyVideoSaveScenes ? globalThis.api.comfyVideoSaveScenes(s) : Promise.resolve(null)),
         run: (p) => (globalThis.api?.comfyVideoRun ? globalThis.api.comfyVideoRun(p) : Promise.resolve({ ok: false, error: 'desktop only' }))
     };
 
@@ -112,6 +113,15 @@ export function setupVideoTab(containerId) {
     const positionRow = makeSelectRow(getLang().video_position || 'Position', 'position');
     container.appendChild(motionRow);
     container.appendChild(positionRow);
+
+    const editRow = document.createElement('div');
+    editRow.className = 'video-row';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'video-btn';
+    editBtn.textContent = getLang().video_edit_lists || '✎ Edit scene / position lists';
+    editBtn.addEventListener('click', openSceneEditor);
+    editRow.appendChild(editBtn);
+    container.appendChild(editRow);
 
     // Extra prompt
     const extraRow = document.createElement('div');
@@ -203,6 +213,29 @@ export function setupVideoTab(containerId) {
     container.appendChild(runRow);
     function setStatus(t) { status.textContent = t; }
 
+    const progWrap = document.createElement('div');
+    progWrap.className = 'video-progress';
+    progWrap.style.display = 'none';
+    const progBar = document.createElement('div');
+    progBar.className = 'video-progress-bar';
+    progWrap.appendChild(progBar);
+    container.appendChild(progWrap);
+    function setProgress(pct) {
+        if (pct === null) { progWrap.style.display = 'none'; return; }
+        progWrap.style.display = 'block';
+        progBar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    }
+
+    // Live sampling progress from ComfyUI's websocket.
+    if (globalThis.api?.onComfyVideoProgress) {
+        globalThis.api.onComfyVideoProgress((p) => {
+            if (!running) return;
+            if (p && typeof p.value === 'number' && typeof p.max === 'number' && p.max > 0) {
+                setProgress((p.value / p.max) * 100);
+            }
+        });
+    }
+
     const resultWrap = document.createElement('div');
     resultWrap.className = 'video-result';
     container.appendChild(resultWrap);
@@ -253,6 +286,7 @@ export function setupVideoTab(containerId) {
         running = true;
         runBtn.disabled = true;
         resultWrap.innerHTML = '';
+        setProgress(0);
         const seedVal = Number(seedNum._input.value);
         const seed = (Number.isNaN(seedVal) || seedVal < 0) ? Math.floor(Math.random() * 2 ** 31) : seedVal;
         const start = Date.now();
@@ -281,6 +315,7 @@ export function setupVideoTab(containerId) {
         clearInterval(timer);
         running = false;
         runBtn.disabled = false;
+        setProgress(null);
         if (res && res.ok && res.dataUrl) {
             setStatus((getLang().video_done || 'Done in {0}s').replace('{0}', Math.floor((Date.now() - start) / 1000)));
             resultWrap.innerHTML = '';
@@ -306,6 +341,88 @@ export function setupVideoTab(containerId) {
             setStatus((getLang().video_error || 'Error: {0}').replace('{0}', res?.error || 'unknown'));
         }
     });
+
+    // ---- Scene / position list editor ----
+    let editorPopup = null;
+    function closeSceneEditor() { if (editorPopup) { editorPopup.remove(); editorPopup = null; } }
+
+    async function persistScenes() {
+        await api.saveScenes(scenes).catch(() => {});
+        motionRow._rebuild();
+        positionRow._rebuild();
+    }
+
+    function openSceneEditor() {
+        closeSceneEditor();
+        let cat = 'motion';
+        editorPopup = document.createElement('div');
+        editorPopup.className = 'video-editor-popup';
+
+        const header = document.createElement('div');
+        header.className = 'video-editor-header';
+        const title = document.createElement('span');
+        title.textContent = getLang().video_edit_title || 'Edit scene / position lists';
+        const close = document.createElement('button');
+        close.className = 'video-editor-close';
+        close.textContent = '✕';
+        close.addEventListener('click', closeSceneEditor);
+        header.appendChild(title);
+        header.appendChild(close);
+        editorPopup.appendChild(header);
+
+        const catRow = document.createElement('div');
+        catRow.className = 'video-row';
+        const catSel = document.createElement('select');
+        catSel.className = 'video-select';
+        for (const [val, label] of [['motion', getLang().video_scene || 'Scene / motion'], ['position', getLang().video_position || 'Position']]) {
+            const o = document.createElement('option');
+            o.value = val; o.textContent = label;
+            catSel.appendChild(o);
+        }
+        catRow.appendChild(catSel);
+        editorPopup.appendChild(catRow);
+
+        const listEl = document.createElement('div');
+        listEl.className = 'video-editor-list';
+        editorPopup.appendChild(listEl);
+
+        function buildRows() {
+            listEl.innerHTML = '';
+            if (!Array.isArray(scenes[cat])) scenes[cat] = [];
+            const arr = scenes[cat];
+            for (let i = 0; i < arr.length; i++) {
+                const row = document.createElement('div');
+                row.className = 'video-editor-row';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'video-text';
+                input.value = arr[i];
+                input.addEventListener('change', async () => { arr[i] = input.value.trim(); await persistScenes(); });
+                const del = document.createElement('button');
+                del.className = 'video-editor-del';
+                del.textContent = '✕';
+                del.addEventListener('click', async () => { arr.splice(i, 1); buildRows(); await persistScenes(); });
+                row.appendChild(input);
+                row.appendChild(del);
+                listEl.appendChild(row);
+            }
+        }
+        catSel.addEventListener('change', () => { cat = catSel.value; buildRows(); });
+        buildRows();
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'video-btn';
+        addBtn.textContent = getLang().video_edit_add || '+ Add entry';
+        addBtn.addEventListener('click', () => {
+            scenes[cat].push('');
+            buildRows();
+            const inputs = listEl.querySelectorAll('input');
+            if (inputs.length) inputs[inputs.length - 1].focus();
+        });
+        editorPopup.appendChild(addBtn);
+
+        document.body.appendChild(editorPopup);
+    }
 
     // ---- Load scenes + workflows ----
     (async () => {
