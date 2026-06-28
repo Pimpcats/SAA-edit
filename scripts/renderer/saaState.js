@@ -23,7 +23,15 @@ export function captureSaaState() {
         chars.push(cl?.getKey?.()?.[i] ?? 'None');
         charWeights.push(cl?.getTextValue?.(i) ?? '1.0');
     }
-    return { v: 1, views, viewWeights, chars, charWeights };
+    // The segmented prompt split (Character / Action / Background) — a combined
+    // prompt can't be split back, so save how it was segregated.
+    const P = globalThis.prompt;
+    const segments = {
+        character: P?.character?.getValue?.() ?? '',
+        action: P?.action?.getValue?.() ?? '',
+        background: P?.background?.getValue?.() ?? ''
+    };
+    return { v: 1, views, viewWeights, chars, charWeights, segments };
 }
 
 export function restoreSaaState(state) {
@@ -43,6 +51,17 @@ export function restoreSaaState(state) {
             state.charWeights.forEach((w, i) => { if (i < CHAR_SLOTS) cl.setTextValue(i, w); });
         }
         try { callback_myCharacterList_updateThumb(); } catch { /* best effort */ }
+    }
+    // Restore the prompt segments, but only if the image actually used them —
+    // otherwise recomposing from empty segments would wipe the main prompt that
+    // was already filled from the pasted prompt.
+    const seg = state.segments;
+    const P = globalThis.prompt;
+    if (seg && P && (seg.character || seg.action || seg.background)) {
+        if (P.character) P.character.setValue(seg.character || '');
+        if (P.action) P.action.setValue(seg.action || '');
+        if (P.background) P.background.setValue(seg.background || '');
+        if (typeof globalThis.recomposeCombinedPrompt === 'function') globalThis.recomposeCombinedPrompt();
     }
     return true;
 }
