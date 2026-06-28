@@ -150,6 +150,26 @@ export function setupGallery(containerId) {
         container.innerHTML = '';
     };
 
+    // Auto-save a generated image (with embedded UI state) to the configured
+    // folder via the main process — silent, no download prompt. Desktop + PNG only.
+    function autoSaveImage(base64, seed, state) {
+        try {
+            if (!globalThis.globalSettings?.auto_save_generated) return;
+            if (globalThis.inBrowser || !globalThis.api?.saveGeneratedImage) return;
+            let src = base64;
+            if (typeof src !== 'string' || !src) return;
+            if (!src.startsWith('data:')) src = 'data:image/png;base64,' + src;   // WebUI raw base64 = PNG
+            else if (!src.startsWith('data:image/png')) return;                   // only PNG carries our chunk
+            const embedded = state ? embedSaaState(src, state) : src;
+            const fname = `saa_${seed || 'image'}_${Date.now()}.png`;
+            Promise.resolve(globalThis.api.saveGeneratedImage(embedded, fname, globalThis.globalSettings.auto_save_dir || ''))
+                .then((r) => { if (!r?.ok) console.warn('[autosave]', r?.error); })
+                .catch((e) => console.warn('[autosave]', e));
+        } catch (err) {
+            console.warn('[autosave]', err);
+        }
+    }
+
     globalThis.mainGallery.appendImageData = function (base64, seed, tagsString, keep_gallery, switchToLatest = false) {
         if ('False' === keep_gallery) {
             globalThis.mainGallery.clearGallery();
@@ -160,7 +180,12 @@ export function setupGallery(containerId) {
         tags.push(tagsString || '');
         // Snapshot the current view-tag / character dropdown state so it can be
         // embedded if this image is later saved with settings.
-        states.push(captureSaaState());
+        const capturedState = captureSaaState();
+        states.push(capturedState);
+
+        // Auto-save each generation (silently, with embedded state) to the
+        // configured folder. Desktop only; PNG only.
+        autoSaveImage(base64, seed, capturedState);
 
         if (seeds.length !== tags.length || images.length !== seeds.length) {
             console.warn('[appendImageData] Mismatch: images:', images.length, 'seeds:', seeds.length, 'tags:', tags.length);

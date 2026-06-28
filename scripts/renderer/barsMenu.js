@@ -153,6 +153,21 @@ export function setupBarsMenu() {
         floatRow.appendChild(floatSpan);
         panel.appendChild(floatRow);
 
+        // Auto-save each generation (with embedded settings) to the output folder.
+        const saveRow = document.createElement('label');
+        saveRow.className = 'bars-menu-row';
+        const saveCb = document.createElement('input');
+        saveCb.type = 'checkbox';
+        saveCb.checked = !!globalThis.globalSettings.auto_save_generated;
+        saveCb.addEventListener('change', () => {
+            globalThis.globalSettings.auto_save_generated = saveCb.checked;
+        });
+        const saveSpan = document.createElement('span');
+        saveSpan.textContent = LANG.settings_auto_save || 'Auto-save generated images (with settings)';
+        saveRow.appendChild(saveCb);
+        saveRow.appendChild(saveSpan);
+        panel.appendChild(saveRow);
+
         // --- Show / hide bars ---
         panel.appendChild(sectionTitle(LANG.bars_menu_title || 'Show / hide bars'));
         const hidden = new Set(getHidden());

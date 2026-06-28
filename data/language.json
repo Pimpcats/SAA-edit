@@ -234,6 +234,7 @@
         "settings_features": "Features",
         "settings_mira_itu": "MiraITU image tile on drag-drop (ComfyUI)",
         "settings_floating_buttons": "Float the Generate buttons (instead of docked)",
+        "settings_auto_save": "Auto-save generated images (with settings)",
         "dock_generate_title": "Generate",
         "character_swap": "Swap slots:",
         "character_swap_btn": "Swap",
