@@ -265,7 +265,7 @@ class WebUI {
     async run (generateData) {
         return new Promise((resolve, reject) => {
             const {addr, auth, uuid, model, vpred, positive, negative, width, height,
-                cfg, step, seed, subseed, subseedStrength, sampler, scheduler, refresh, hifix, refiner, controlnet, adetailer} = generateData;
+                cfg, step, seed, subseed, subseedStrength, sampler, scheduler, refresh, hifix, refiner, controlnet, adetailer, saveImages} = generateData;
             this.addr = addr;
             this.refresh = refresh;
             this.lastProgress = -1;
@@ -288,7 +288,7 @@ class WebUI {
                 "subseed": (typeof subseed === 'number') ? subseed : -1,
                 "subseed_strength": (typeof subseedStrength === 'number') ? subseedStrength : 0,
                 "cfg_scale": cfg,
-                "save_images": true,
+                "save_images": saveImages !== false,
                 "alwayson_scripts": {},
             }
 
@@ -396,7 +396,7 @@ class WebUI {
         return new Promise((resolve, reject) => {
             const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative,
                     width, height, cfg, step, seed, subseed, subseedStrength, sampler, scheduler, refresh,
-                    hifix, refiner, regional, controlnet, adetailer} = generateData;
+                    hifix, refiner, regional, controlnet, adetailer, saveImages} = generateData;
             this.addr = addr;
             this.refresh = refresh;
             this.lastProgress = -1;
@@ -422,7 +422,7 @@ class WebUI {
                 "subseed": (typeof subseed === 'number') ? subseed : -1,
                 "subseed_strength": (typeof subseedStrength === 'number') ? subseedStrength : 0,
                 "cfg_scale": cfg,
-                "save_images": true,
+                "save_images": saveImages !== false,
                 "alwayson_scripts": {
                     "Regional Prompter": {
                         "args": [

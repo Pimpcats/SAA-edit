@@ -909,6 +909,9 @@ export async function generateImage(dataPack){
             seed: effSeed,
             subseed: subseed,
             subseedStrength: subseedStrength,
+            // When the app auto-saves (with embedded state), tell A1111 not to
+            // save its own copy so there's exactly one file per generation.
+            saveImages: !globalThis.globalSettings.auto_save_generated,
             sampler: globalThis.generate.sampler.getValue(),
             scheduler: globalThis.generate.scheduler.getValue(),            
             ...(SETTINGS.api_model_type === 'Checkpoint' ? {

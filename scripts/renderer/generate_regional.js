@@ -478,6 +478,8 @@ export async function generateRegionalImage(dataPack){
             cfg: globalThis.generate.cfg.getValue(),
             step: globalThis.generate.step.getValue(),
             seed: createPromptResult.randomSeed,
+            // Avoid a duplicate A1111-saved copy when the app auto-saves.
+            saveImages: !globalThis.globalSettings.auto_save_generated,
             sampler: globalThis.generate.sampler.getValue(),
             scheduler: globalThis.generate.scheduler.getValue(),
             refresh:globalThis.generate.api_preview_refresh_time.getValue(),
