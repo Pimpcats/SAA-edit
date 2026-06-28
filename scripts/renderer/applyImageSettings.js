@@ -1,5 +1,5 @@
 import { SAMPLER_WEBUI, SCHEDULER_WEBUI } from './language.js';
-import { callback_myCharacterList_updateThumb } from './callbacks.js';
+import { callback_myCharacterList_updateThumb, callback_myViewList_Update } from './callbacks.js';
 
 // Shared "apply A1111 settings" logic, used by both the Image Info drop panel
 // and the gallery "Send" button. Takes a parsedMetadata object (from
@@ -115,6 +115,27 @@ function applyCharactersFromPrompt(positivePrompt) {
     } catch { /* thumb refresh is best-effort */ }
 }
 
+// Detect which view tags (angle/camera/background/style/position/expression/
+// clothing) are present in the prompt and set those dropdowns to match, so a
+// pasted image restores the view-tag selections it was generated with. A tag
+// not found clears that slot to "none".
+function applyViewTagsFromPrompt(positivePrompt) {
+    const vl = globalThis.viewList;
+    const viewTags = globalThis.cachedFiles?.viewTags;
+    if (!positivePrompt || !vl?.setSlotValue || !viewTags) return;
+    const hay = ` ${cleanForMatch(positivePrompt)} `;
+    const cats = ['angle', 'camera', 'background', 'style', 'position', 'expression', 'clothing'];
+    cats.forEach((cat, idx) => {
+        const list = Array.isArray(viewTags[cat]) ? viewTags[cat] : [];
+        const map = {};
+        for (const t of list) map[t] = t;
+        const matches = findTagsInPrompt(hay, map, true);
+        matches.sort((a, b) => b.len - a.len);   // most specific tag wins
+        vl.setSlotValue(idx, matches[0] ? matches[0].slotValue : 'none');
+    });
+    try { callback_myViewList_Update(); } catch { /* persist best-effort */ }
+}
+
 export function applyPrompts(parsedMetadata) {
     const defaultPositivePrompt = 'masterpiece, best quality, amazing quality';
     const defaultNegativePrompt = 'bad quality, worst quality, worst detail, sketch';
@@ -132,6 +153,7 @@ export function applyPrompts(parsedMetadata) {
     globalThis.prompt.negative.setValue(negativePrompt);
 
     applyCharactersFromPrompt(positivePrompt);
+    applyViewTagsFromPrompt(positivePrompt);
 }
 
 export function applySettings(parsedMetadata, opts = {}) {

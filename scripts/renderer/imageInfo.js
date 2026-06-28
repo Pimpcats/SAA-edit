@@ -462,8 +462,8 @@ export function setupImageUploadOverlay() {
             btn.textContent = label;
             btn.addEventListener('click', () => {
                 sendPrompt(globalThis.currentImageMetadata, 'all', opts);
-                btn.textContent = LANG.image_info_send_tags_sent || 'Sent';
-                setTimeout(() => { btn.textContent = label; }, 2000);
+                // Close the drop popup once a paste choice is made.
+                hideOverlay();
             });
             return btn;
         };
