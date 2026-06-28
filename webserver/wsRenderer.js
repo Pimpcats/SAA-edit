@@ -2,7 +2,7 @@ import { updateLanguage, updateSettings } from '../scripts/renderer/language.js'
 import { setupGallery } from '../scripts/renderer/customGallery.js';
 import { setupThumbOverlay, setupThumb } from '../scripts/renderer/customThumbGallery.js';
 import { setupSuggestionSystem } from '../scripts/renderer/tagAutoComplete.js';
-import { setupButtonOverlay, customCommonOverlay } from '../scripts/renderer/customOverlay.js';
+import { setupButtonOverlay, setupDockedGenerate, customCommonOverlay } from '../scripts/renderer/customOverlay.js';
 import { myCharacterList, myRegionalCharacterList, myViewsList, myLanguageList, mySimpleList } from '../scripts/renderer/components/myDropdown.js';
 import { callback_mySettingList, callback_api_model_select, callback_api_model_type, callback_api_interface, 
     callback_generate_start, callback_generate_skip, callback_generate_cancel,callback_keep_gallery,
@@ -558,6 +558,7 @@ async function init() {
         // Setup Overlay
         globalThis.overlay = {
             buttons: setupButtonOverlay(),
+            dock: setupDockedGenerate(),
             custom: customCommonOverlay()
         }
 

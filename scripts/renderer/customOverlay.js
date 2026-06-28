@@ -334,6 +334,93 @@ export function setupButtonOverlay() {
     };
 }
 
+// Docked, collapsible Generate island. Unlike the draggable floating overlay,
+// this is a fixed part of the UI (bottom-right) so there's always a place to
+// hit Create Image / Batch. It shows whenever the floating overlay is OFF, and
+// can be collapsed to just its header.
+export function setupDockedGenerate() {
+    const COLLAPSE_KEY = 'dockGenerateCollapsed';
+
+    const dock = document.createElement('div');
+    dock.id = 'cg-dock-generate';
+    dock.className = 'cg-dock-generate';
+
+    const header = document.createElement('div');
+    header.className = 'cg-dock-header';
+    const title = document.createElement('span');
+    title.className = 'cg-dock-title';
+    const chevron = document.createElement('button');
+    chevron.className = 'cg-dock-collapse';
+    header.appendChild(title);
+    header.appendChild(chevron);
+
+    const body = document.createElement('div');
+    body.className = 'cg-dock-body';
+
+    dock.appendChild(header);
+    dock.appendChild(body);
+    document.body.appendChild(dock);
+
+    function getLang() {
+        return globalThis.cachedFiles?.language?.[globalThis.globalSettings?.language] || {};
+    }
+
+    function buildButtons() {
+        body.innerHTML = '';
+        const single = document.querySelector('.myButton-generate-button-single');
+        const batch = document.querySelector('.myButton-generate-button-batch');
+        if (!single || !batch || !globalThis.generate?.generate_single) return;
+
+        // cloneNode keeps the source classes (so right-click infinite / seed
+        // variations still target these), but not its event listeners — wire
+        // the click straight to the real buttons.
+        const cBatch = batch.cloneNode(true);
+        const cSingle = single.cloneNode(true);
+        for (const b of [cBatch, cSingle]) b.classList.add('cg-dock-button');
+
+        const sDef = globalThis.generate.generate_single.getDefaultColor();
+        const sHov = globalThis.generate.generate_single.getHoverColor();
+        const bDef = globalThis.generate.generate_batch.getDefaultColor();
+        const bHov = globalThis.generate.generate_batch.getHoverColor();
+        cSingle.style.backgroundColor = sDef;
+        cBatch.style.backgroundColor = bDef;
+        cSingle.addEventListener('mouseover', () => { cSingle.style.backgroundColor = sHov; });
+        cSingle.addEventListener('mouseout', () => { cSingle.style.backgroundColor = sDef; });
+        cBatch.addEventListener('mouseover', () => { cBatch.style.backgroundColor = bHov; });
+        cBatch.addEventListener('mouseout', () => { cBatch.style.backgroundColor = bDef; });
+        cSingle.addEventListener('click', () => globalThis.generate.generate_single.click());
+        cBatch.addEventListener('click', () => globalThis.generate.generate_batch.click());
+
+        body.appendChild(cBatch);
+        body.appendChild(cSingle);
+    }
+
+    let collapsed = localStorage.getItem(COLLAPSE_KEY) === 'true';
+    function applyCollapsed() {
+        dock.classList.toggle('collapsed', collapsed);
+        chevron.textContent = collapsed ? '▸' : '▾';
+        title.textContent = getLang().dock_generate_title || 'Generate';
+    }
+    header.addEventListener('click', () => {
+        collapsed = !collapsed;
+        localStorage.setItem(COLLAPSE_KEY, String(collapsed));
+        applyCollapsed();
+    });
+
+    function refresh() {
+        // Only one island at a time: the dock hides when the floating overlay
+        // is enabled in settings.
+        const floating = !!globalThis.globalSettings?.floating_buttons_enable;
+        dock.style.display = floating ? 'none' : 'flex';
+        if (!floating) buildButtons();
+        applyCollapsed();
+    }
+    refresh();
+
+    globalThis.dockGenerate = { refresh, reload: buildButtons };
+    return { refresh, reload: buildButtons };
+}
+
 function restrictOverlayPosition(element, defaultPosition) {
     if (!element) return;
 

@@ -145,9 +145,10 @@ export function setupBarsMenu() {
         floatCb.addEventListener('change', () => {
             globalThis.globalSettings.floating_buttons_enable = floatCb.checked;
             globalThis.floatingButtons?.refresh?.();
+            globalThis.dockGenerate?.refresh?.();
         });
         const floatSpan = document.createElement('span');
-        floatSpan.textContent = LANG.settings_floating_buttons || 'Floating Create Image / Batch buttons';
+        floatSpan.textContent = LANG.settings_floating_buttons || 'Float the Generate buttons (instead of docked)';
         floatRow.appendChild(floatCb);
         floatRow.appendChild(floatSpan);
         panel.appendChild(floatRow);
