@@ -43,12 +43,12 @@ export function setupBackgroundsEditor(containerId) {
     function refreshDropdown() {
         if (!globalThis.viewList) return;
         const LANG = getLang();
-        const labelPrefixList = `${LANG.view_angle},${LANG.view_camera},${LANG.view_background},${LANG.view_style},${LANG.view_position || 'Position'}`;
+        const labelPrefixList = `${LANG.view_angle},${LANG.view_camera},${LANG.view_background},${LANG.view_style},${LANG.view_position || 'Position'},${LANG.view_expression || 'Expression'},${LANG.view_clothing || 'Clothing'}`;
         let sel = globalThis.viewList.getValue();
         if (!Array.isArray(sel)) sel = [sel];
         globalThis.viewList.setOptions(
             globalThis.cachedFiles.viewTags, null, labelPrefixList,
-            sel[0] || 'None', sel[1] || 'None', sel[2] || 'None', sel[3] || 'None', sel[4] || 'None', false
+            sel[0] || 'None', sel[1] || 'None', sel[2] || 'None', sel[3] || 'None', sel[4] || 'None', sel[5] || 'None', sel[6] || 'None', false
         );
     }
 
@@ -124,7 +124,9 @@ export function setupBackgroundsEditor(containerId) {
             ['camera', LANG.view_camera || 'Camera'],
             ['background', LANG.view_background || 'Background'],
             ['style', LANG.view_style || 'Style'],
-            ['position', LANG.view_position || 'Position']
+            ['position', LANG.view_position || 'Position'],
+            ['expression', LANG.view_expression || 'Expression'],
+            ['clothing', LANG.view_clothing || 'Clothing']
         ];
         for (const [val, label] of cats) {
             const o = document.createElement('option');

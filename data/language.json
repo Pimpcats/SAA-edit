@@ -13,6 +13,8 @@
         "view_background": "Background",
         "view_style": "Style",
         "view_position": "Position",
+        "view_expression": "Expression",
+        "view_clothing": "Clothing",
         "api_model_settings": "Model Settings",
         "api_model_sampler": "Sampler",
         "api_model_scheduler": "Scheduler",

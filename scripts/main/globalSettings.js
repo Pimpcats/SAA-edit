@@ -49,6 +49,8 @@ const defaultSettings = {
     "view_background": "None",
     "view_style": "None",
     "view_position": "None",
+    "view_expression": "None",
+    "view_clothing": "None",
     
     "api_model_sampler" : "euler_ancestral", 
     "api_model_scheduler" : "normal",

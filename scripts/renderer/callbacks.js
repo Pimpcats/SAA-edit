@@ -200,12 +200,16 @@ export function callback_myViewList_Update(){
     const v3 = globalThis.viewList.getValue()[2];
     const v4 = globalThis.viewList.getValue()[3];
     const v5 = globalThis.viewList.getValue()[4];
+    const v6 = globalThis.viewList.getValue()[5];
+    const v7 = globalThis.viewList.getValue()[6];
 
     globalThis.globalSettings.view_angle = v1;
     globalThis.globalSettings.view_camera = v2;
     globalThis.globalSettings.view_background = v3;
     globalThis.globalSettings.view_style = v4;
     globalThis.globalSettings.view_position = v5;
+    globalThis.globalSettings.view_expression = v6;
+    globalThis.globalSettings.view_clothing = v7;
 }
 
 export async function callback_generate_start(runType='normal', dataPack=null){    

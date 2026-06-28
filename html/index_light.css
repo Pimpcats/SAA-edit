@@ -375,10 +375,13 @@ body {
     grid-template-columns: repeat(4, 1fr);
 }
 
-.mydropdown-container-5 {
+.mydropdown-container-5,
+.mydropdown-container-6,
+.mydropdown-container-7 {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px;
+    row-gap: 8px;
     margin-top: 4px;
     margin-bottom: 4px;
     width: 100%;

@@ -98,6 +98,8 @@ export function getViewTags(seed) {
     const tag_background = createViewTag('background', globalThis.viewList.getValue()[2], seed, globalThis.viewList.getTextValue(2));
     const tag_style = createViewTag('style', globalThis.viewList.getValue()[3], seed, globalThis.viewList.getTextValue(3));
     const tag_position = createViewTag('position', globalThis.viewList.getValue()[4], seed, globalThis.viewList.getTextValue(4));
+    const tag_expression = createViewTag('expression', globalThis.viewList.getValue()[5], seed, globalThis.viewList.getTextValue(5));
+    const tag_clothing = createViewTag('clothing', globalThis.viewList.getValue()[6], seed, globalThis.viewList.getTextValue(6));
 
     let combo = '';
     if(tag_angle !== '')
@@ -114,6 +116,12 @@ export function getViewTags(seed) {
 
     if(tag_position !== '')
         combo += `${tag_position}, `;
+
+    if(tag_expression !== '')
+        combo += `${tag_expression}, `;
+
+    if(tag_clothing !== '')
+        combo += `${tag_clothing}, `;
 
     return combo;
 }

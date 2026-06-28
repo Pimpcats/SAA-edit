@@ -168,7 +168,7 @@ function handleViewOptions(options, filteredOptions, args, dropdownCount) {
     // Lenient: a missing category (e.g. an older view_tags.json without
     // "position") just yields an empty list for that slot instead of breaking
     // every dropdown.
-    const keys = ['angle', 'camera', 'background', 'style', 'position'];
+    const keys = ['angle', 'camera', 'background', 'style', 'position', 'expression', 'clothing'];
     for (let index = 0; index < options.length; index++) {
         const key = keys[index];
         const list = Array.isArray(data[key]) ? data[key] : [];
@@ -183,9 +183,9 @@ function handleViewOptions(options, filteredOptions, args, dropdownCount) {
 export function myViewsList(containerId, view_tags) {    
     const dropdown = createDropdown({
         containerId: containerId,
-        dropdownCount: 5,
-        labelPrefixList: ['angle', 'camera', 'background', 'view', 'position'],
-        textboxIds: ['cd-view-angle', 'cd-view-camera', 'cd-view-background', 'cd-view-style', 'cd-view-position'],
+        dropdownCount: 7,
+        labelPrefixList: ['angle', 'camera', 'background', 'view', 'position', 'expression', 'clothing'],
+        textboxIds: ['cd-view-angle', 'cd-view-camera', 'cd-view-background', 'cd-view-style', 'cd-view-position', 'cd-view-expression', 'cd-view-clothing'],
         optionHandler: handleViewOptions,
         callback_func: callback_myViewList_Update,
         enableSearch: true,
@@ -202,8 +202,10 @@ export function myViewsList(containerId, view_tags) {
         ${LANGV.view_camera},
         ${LANGV.view_background},
         ${LANGV.view_style},
-        ${LANGV.view_position || 'Position'}`;
-        dropdown.setOptions(view_tags, null, labelPrefixList, 'None', 'None', 'None', 'None', 'None', false);
+        ${LANGV.view_position || 'Position'},
+        ${LANGV.view_expression || 'Expression'},
+        ${LANGV.view_clothing || 'Clothing'}`;
+        dropdown.setOptions(view_tags, null, labelPrefixList, 'None', 'None', 'None', 'None', 'None', 'None', 'None', false);
     } else if (!dropdown) {
         console.error(CAT, `[myViewsList] Dropdown with containerId "${containerId}" not found.`);
     }
