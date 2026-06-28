@@ -299,6 +299,8 @@
         "gallery_set_wallpaper": "Set as desktop background",
         "gallery_save_image": "Save image (with settings)",
         "gallery_send_settings": "Send all settings",
+        "gallery_send_prompts": "Send prompts",
+        "gallery_send_prompts_title": "Apply only the prompts from this image",
         "gallery_send_settings_title": "Apply all settings from this image",
         "gallery_send_settings_done": "Sent!",
         "image_info_copy_metadata": "Copy Metadata",

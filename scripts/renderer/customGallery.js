@@ -711,6 +711,37 @@ export function setupGallery(containerId) {
         return bar;
     }
 
+    // Apply the current gallery image to the UI. mode 'all' = every setting;
+    // mode 'prompts' = only the prompt boxes / characters / view tags (no
+    // cfg/steps/seed/size/etc.).
+    async function applyGalleryImage(mode) {
+        const base64 = images[currentIndex];
+        if (!base64) return;
+        let result;
+        if (globalThis.inBrowser) {
+            result = await sendWebSocketMessage({ type: 'API', method: 'readBase64Image', params: [base64] });
+        } else {
+            result = await globalThis.api.readBase64Image(base64);
+        }
+        const md = { fileName: 'gallery', fileType: 'image/png', generationParameters: result?.metadata };
+        const parsed = parseGenerationParameters(md);
+        parsed.saaState = result?.metadata?.['saa-state'] || null;
+        const hasEmbedded = parsed.positivePrompt || parsed.otherParams;
+        if (hasEmbedded) {
+            applyImageSettings(parsed, mode);
+        } else {
+            // Fall back to the prompt the gallery already stored.
+            if (tags?.[currentIndex]) globalThis.prompt.common.setValue(tags[currentIndex].trim());
+            if (mode === 'all' && seeds?.[currentIndex] !== undefined) {
+                const s = Number.parseInt(seeds[currentIndex]);
+                if (!Number.isNaN(s)) globalThis.generate.seed.setValue(s);
+            }
+        }
+        // Gallery images aren't embedded until saved, so prefer the exact
+        // in-memory state for the active image when available.
+        if (!parsed.saaState && states?.[currentIndex]) restoreSaaState(states[currentIndex]);
+    }
+
     function ensureSeedButton() {
         let seedButton = document.getElementById('cg-seed-button');
         if (!seedButton) {
@@ -758,30 +789,22 @@ export function setupGallery(containerId) {
     function ensureTagButton() {
         let tagButton = document.getElementById('cg-tag-button');
         if (!tagButton) {
+            const LANG = globalThis.cachedFiles.language[globalThis.globalSettings.language];
+            const label = LANG.gallery_send_prompts || 'Send prompts';
             tagButton = document.createElement('button');
             tagButton.id = 'cg-tag-button';
             tagButton.className = 'cg-button';
-            tagButton.textContent = 'Tags';
+            tagButton.textContent = label;
+            tagButton.title = LANG.gallery_send_prompts_title || 'Apply only the prompts from this image';
             tagButton.addEventListener('click', async () => {
-                if (!tags?.[currentIndex]) return;
-    
-                const tagToCopy = tags[currentIndex].trim();
                 try {
-                    await navigator.clipboard.writeText(tagToCopy);
-                    tagButton.textContent = 'Copied!';                    
+                    await applyGalleryImage('prompts');
+                    tagButton.textContent = LANG.gallery_send_settings_done || 'Sent!';
                 } catch (err) {
-                    tagButton.textContent = 'Copy failed!';
-                    console.warn('Failed to copy tag:', err);
-                    const SETTINGS = globalThis.globalSettings;
-                    const FILES = globalThis.cachedFiles;
-                    const LANG = FILES.language[SETTINGS.language];
-                    globalThis.overlay.custom.createCustomOverlay(
-                        'none', LANG.saac_macos_clipboard.replace('{0}', tagToCopy),
-                        384, 'center', 'left', null, 'Clipboard');
+                    console.error('[gallery] send prompts failed:', err);
+                    tagButton.textContent = 'Failed!';
                 } finally {
-                    setTimeout(() => {
-                        tagButton.textContent = 'Tags';
-                    }, 2000);
+                    setTimeout(() => { tagButton.textContent = label; }, 2000);
                 }
             });
             getGalleryToolbar().appendChild(tagButton);
@@ -873,32 +896,8 @@ export function setupGallery(containerId) {
         sendButton.textContent = label;
         sendButton.title = LANG.gallery_send_settings_title || 'Apply all settings from this image';
         sendButton.addEventListener('click', async () => {
-            const base64 = images[currentIndex];
-            if (!base64) return;
             try {
-                let result;
-                if (globalThis.inBrowser) {
-                    result = await sendWebSocketMessage({ type: 'API', method: 'readBase64Image', params: [base64] });
-                } else {
-                    result = await globalThis.api.readBase64Image(base64);
-                }
-                const md = { fileName: 'gallery', fileType: 'image/png', generationParameters: result?.metadata };
-                const parsed = parseGenerationParameters(md);
-                parsed.saaState = result?.metadata?.['saa-state'] || null;
-                const hasEmbedded = parsed.positivePrompt || parsed.otherParams;
-                if (hasEmbedded) {
-                    applyImageSettings(parsed, 'all');
-                } else {
-                    // Fall back to the prompt + seed the gallery already stored.
-                    if (tags?.[currentIndex]) globalThis.prompt.common.setValue(tags[currentIndex].trim());
-                    if (seeds?.[currentIndex] !== undefined) {
-                        const s = Number.parseInt(seeds[currentIndex]);
-                        if (!Number.isNaN(s)) globalThis.generate.seed.setValue(s);
-                    }
-                }
-                // Gallery images aren't embedded until saved, so prefer the
-                // exact in-memory state for the active image when available.
-                if (!parsed.saaState && states?.[currentIndex]) restoreSaaState(states[currentIndex]);
+                await applyGalleryImage('all');
                 sendButton.textContent = LANG.gallery_send_settings_done || 'Sent!';
             } catch (err) {
                 console.error('[gallery] send settings failed:', err);
