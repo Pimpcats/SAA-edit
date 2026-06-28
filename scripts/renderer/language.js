@@ -305,6 +305,12 @@ export function updateSettings() {
     globalThis.generate.keepGallery.setValue(SETTINGS.keep_gallery);
 
     globalThis.prompt.common.setValue(SETTINGS.custom_prompt);
+    if (globalThis.prompt.character) globalThis.prompt.character.setValue(SETTINGS.prompt_character || '');
+    if (globalThis.prompt.action) globalThis.prompt.action.setValue(SETTINGS.prompt_action || '');
+    if (globalThis.prompt.background) globalThis.prompt.background.setValue(SETTINGS.prompt_background || '');
+    if (((SETTINGS.prompt_character || '') + (SETTINGS.prompt_action || '') + (SETTINGS.prompt_background || '')).trim()) {
+        globalThis.recomposeCombinedPrompt?.();
+    }
     globalThis.prompt.positive.setValue(SETTINGS.api_prompt);
     globalThis.prompt.positive_right.setValue(SETTINGS.regional_api_prompt_right);
     globalThis.prompt.negative.setValue(SETTINGS.api_neg_prompt);

@@ -284,6 +284,9 @@ export const sharedBodyHTML = `
           </div>
           
           <div id="prompt-text-container">
+            <div class="prompt-character prompt-segment"></div>
+            <div class="prompt-action prompt-segment"></div>
+            <div class="prompt-background prompt-segment"></div>
             <div class="prompt-common">common</div>
             <div class="prompt-positive">positive</div>
             <div class="prompt-positive-right">positive-right</div>

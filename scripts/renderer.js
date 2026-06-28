@@ -14,6 +14,7 @@ import { setupButtons, toggleButtons, showCancelButtons } from './renderer/compo
 import { setupCollapsed, setupSaveSettingsToggle, setupDeleteSettingsToggle, setupModelReloadToggle,
     setupRefreshToggle, setupSwapToggle, doSwap, reloadFiles } from './renderer/components/myCollapsed.js';
 import { setupTextbox, setupInfoBox } from './renderer/components/myTextbox.js';
+import { setupSegmentedPrompt } from './renderer/segmentedPrompt.js';
 import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from './renderer/generate_backend.js';
 import { setupLoRA } from './renderer/slots/myLoRASlot.js';
 import { setupControlNet } from './renderer/slots/myControlNetSlot.js';
@@ -283,11 +284,11 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
 export async function createPrompt(SETTINGS, FILES, LANG) {
     console.log('Creating globalThis.prompt');
     globalThis.prompt = {
-        common: setupTextbox('prompt-common', LANG.custom_prompt, {
+        common: setupTextbox('prompt-common', LANG.prompt_main || 'Main prompt (combined)', {
             value: SETTINGS.custom_prompt,
             defaultTextColor: 'darkorange',
-            maxLines: 20               
-            }, false, (value) => { globalThis.globalSettings.custom_prompt = value; }),
+            maxLines: 20
+            }, true, (value) => { globalThis.globalSettings.custom_prompt = value; }),
         positive: setupTextbox('prompt-positive', LANG.api_prompt, {
             value: SETTINGS.api_prompt,
             defaultTextColor: 'LawnGreen',
@@ -314,6 +315,9 @@ export async function createPrompt(SETTINGS, FILES, LANG) {
             maxLines: 5
             }, false, (value) => { globalThis.globalSettings.prompt_ban = value; })
     }
+
+    // Split the main positive prompt into Character / Action / Background inputs.
+    setupSegmentedPrompt(SETTINGS, LANG);
 
     globalThis.multiCharEmphasis = {
         enable: setupCheckbox('multi-char-emphasis-enable', LANG.multi_char_emphasis, SETTINGS.multi_char_emphasis_enable, true,

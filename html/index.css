@@ -348,6 +348,31 @@ html, body {
     color: inherit;
 }
 
+/* Segmented prompt: Character / Action / Background inputs + combined main box */
+#prompt-text-container .myTextbox-prompt-character-header,
+#prompt-text-container .myTextbox-prompt-action-header,
+#prompt-text-container .myTextbox-prompt-background-header,
+#prompt-text-container .myTextbox-prompt-common-header {
+    font-weight: bold;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    padding: 4px 6px 2px;
+}
+#prompt-text-container .prompt-segment {
+    margin-bottom: 2px;
+}
+/* Set the combined main box apart from the segments above it. */
+#prompt-text-container .prompt-common {
+    margin-top: 4px;
+    border-top: 2px solid rgba(255, 165, 0, 0.35) !important;
+}
+#prompt-text-container .myTextbox-prompt-common-header {
+    color: darkorange;
+    opacity: 0.85;
+}
+
 /* Docked, collapsible Generate island (default home for Create Image / Batch) */
 .cg-dock-generate {
     position: fixed;
