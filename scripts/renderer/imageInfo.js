@@ -292,10 +292,28 @@ export function setupImageUploadOverlay() {
 
         const file = files[0];
 
-        // MiraITU (image tile) removed from drag-drop: every dropped image just
-        // reads its metadata for Paste All.
+        // MiraITU (image tile) is off by default; when enabled in Settings,
+        // dropping an image on the bottom half opens MiraITU (ComfyUI only).
+        // Otherwise every dropped image just reads its metadata for Paste All.
         if (file.type.startsWith('image/')) {
             cachedImage = file;
+
+            if (globalThis.globalSettings.mira_itu_enable) {
+                const rect = uploadOverlay.getBoundingClientRect();
+                const isBottomHalf = (e.clientY - rect.top) >= rect.height / 2;
+                if (isBottomHalf) {
+                    const apiInterface = globalThis.generate.api_interface.getValue();
+                    if (apiInterface === 'ComfyUI') {
+                        const imageBase64 = await fileToBase64(cachedImage);
+                        await createMiraITUWindow(imageBase64, cachedImage);
+                    } else {
+                        globalThis.overlay.custom.createErrorOverlay(LANG.message_mira_itu_only_comfyui, 'https://github.com/mirabarukaso/ComfyUI_MiraSubPack');
+                    }
+                    hideOverlay();
+                    return;
+                }
+            }
+
             const fallbackMetadata = {
                 fileName: file.name,
                 fileSize: file.size,

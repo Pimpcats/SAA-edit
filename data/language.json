@@ -212,6 +212,8 @@
         "settings_background": "Background image",
         "settings_background_upload": "Upload image",
         "settings_background_clear": "Clear",
+        "settings_features": "Features",
+        "settings_mira_itu": "MiraITU image tile on drag-drop (ComfyUI)",
         "character_swap": "Swap slots:",
         "character_swap_btn": "Swap",
         "multi_char_emphasis": "Emphasize multiple characters",

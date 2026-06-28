@@ -29,14 +29,43 @@ export function setupMultiCharEmphasisList(containerId) {
         return S.multi_char_emphasis_list;
     }
 
+    function activeTags() {
+        return getData()
+            .filter(e => e && e.on && typeof e.tag === 'string' && e.tag.trim() !== '')
+            .map(e => e.tag.trim())
+            .join(', ');
+    }
+
+    let statusEl = null;
+    function updateStatus() {
+        if (!statusEl) return;
+        const on = !!globalThis.globalSettings.multi_char_emphasis_enable;
+        const tags = activeTags();
+        if (on && tags) {
+            statusEl.textContent = `✓ Active — adding: ${tags}`;
+            statusEl.className = 'mce-status active';
+        } else if (on) {
+            statusEl.textContent = '⚠ Enabled, but no tags are checked';
+            statusEl.className = 'mce-status warn';
+        } else {
+            statusEl.textContent = '○ Off (tick "Emphasize multiple characters")';
+            statusEl.className = 'mce-status off';
+        }
+    }
+
     function render() {
         container.innerHTML = '';
         container.classList.add('mce-list');
+
+        statusEl = document.createElement('div');
+        statusEl.className = 'mce-status';
+        container.appendChild(statusEl);
 
         const data = getData();
         for (let i = 0; i < data.length; i++) {
             container.appendChild(createRow(data[i], i));
         }
+        updateStatus();
 
         const addBtn = document.createElement('button');
         addBtn.className = 'mce-add';
@@ -63,6 +92,7 @@ export function setupMultiCharEmphasisList(containerId) {
             check.textContent = entry.on ? '☑' : '☐';
             check.classList.toggle('active', entry.on);
             row.classList.toggle('active', entry.on);
+            updateStatus();
         });
 
         const input = document.createElement('input');
@@ -70,7 +100,7 @@ export function setupMultiCharEmphasisList(containerId) {
         input.className = 'mce-input';
         input.value = entry.tag;
         input.placeholder = getLang().mce_placeholder || 'e.g. 2girls';
-        input.addEventListener('change', () => { entry.tag = input.value.trim(); });
+        input.addEventListener('change', () => { entry.tag = input.value.trim(); updateStatus(); });
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
 
         const del = document.createElement('button');
@@ -89,9 +119,7 @@ export function setupMultiCharEmphasisList(containerId) {
     return {
         render,
         refresh: render,
-        getActiveTags: () => getData()
-            .filter(e => e && e.on && typeof e.tag === 'string' && e.tag.trim() !== '')
-            .map(e => e.tag.trim())
-            .join(', ')
+        updateStatus,
+        getActiveTags: activeTags
     };
 }

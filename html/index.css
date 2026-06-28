@@ -347,6 +347,10 @@ html, body {
 }
 
 /* Multi-character emphasis mini checkmark bars (stack left-to-right) */
+.mce-status { width: 100%; flex: 0 0 100%; font-size: 0.85em; padding: 2px 2px; }
+.mce-status.active { color: #1ce088; }
+.mce-status.warn { color: #f1c40f; }
+.mce-status.off { opacity: 0.6; }
 .mce-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 2px 0; align-items: center; }
 .mce-row { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
 .mce-input { width: 130px; flex: 0 0 auto; }

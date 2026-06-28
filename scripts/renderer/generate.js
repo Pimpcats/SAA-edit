@@ -288,10 +288,10 @@ async function getCharacters(){
             characters += (characters.length>0)?`\n${characterName}`:`${characterName}`;
     }
 
-    // Emphasize multiple characters: prepend a user-configured count tag
-    // (e.g. "2girls", "1girl 1boy", "2boys") when 2+ characters are selected.
+    // Emphasize multiple characters: prepend the checked emphasis tags
+    // (e.g. "2girls", "1girl 1boy") whenever the feature is enabled.
     const SETTINGS = globalThis.globalSettings;
-    if (SETTINGS.multi_char_emphasis_enable && selectedCount >= 2) {
+    if (SETTINGS.multi_char_emphasis_enable) {
         let emphasis = globalThis.multiCharEmphasis?.list?.getActiveTags?.() || '';
         if (emphasis === '') emphasis = (SETTINGS.multi_char_emphasis_tag || '').trim().replace(/,+$/, '').trim();
         if (emphasis !== '') {

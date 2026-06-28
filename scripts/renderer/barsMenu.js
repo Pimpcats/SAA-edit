@@ -120,6 +120,22 @@ export function setupBarsMenu() {
         bgRow.appendChild(fileInput);
         panel.appendChild(bgRow);
 
+        // --- Features ---
+        panel.appendChild(sectionTitle(LANG.settings_features || 'Features'));
+        const miraRow = document.createElement('label');
+        miraRow.className = 'bars-menu-row';
+        const miraCb = document.createElement('input');
+        miraCb.type = 'checkbox';
+        miraCb.checked = !!globalThis.globalSettings.mira_itu_enable;
+        miraCb.addEventListener('change', () => {
+            globalThis.globalSettings.mira_itu_enable = miraCb.checked;
+        });
+        const miraSpan = document.createElement('span');
+        miraSpan.textContent = LANG.settings_mira_itu || 'MiraITU image tile on drag-drop (ComfyUI)';
+        miraRow.appendChild(miraCb);
+        miraRow.appendChild(miraSpan);
+        panel.appendChild(miraRow);
+
         // --- Show / hide bars ---
         panel.appendChild(sectionTitle(LANG.bars_menu_title || 'Show / hide bars'));
         const hidden = new Set(getHidden());

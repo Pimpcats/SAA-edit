@@ -316,7 +316,7 @@ export async function createPrompt(SETTINGS, FILES, LANG) {
 
     globalThis.multiCharEmphasis = {
         enable: setupCheckbox('multi-char-emphasis-enable', LANG.multi_char_emphasis, SETTINGS.multi_char_emphasis_enable, true,
-            (value) => { globalThis.globalSettings.multi_char_emphasis_enable = value; }),
+            (value) => { globalThis.globalSettings.multi_char_emphasis_enable = value; globalThis.multiCharEmphasis?.list?.updateStatus?.(); }),
         list: setupMultiCharEmphasisList('multi-char-emphasis-tag')
     };
 
