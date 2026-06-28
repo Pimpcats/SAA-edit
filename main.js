@@ -21,6 +21,7 @@ import { setupCachedFiles } from './scripts/main/cachedFiles.js';
 import { setupCivitai } from './scripts/main/civitai.js';
 import { setupWallpaper } from './scripts/main/wallpaper.js';
 import { setupImageSave } from './scripts/main/imageSave.js';
+import { setupComfyVideo } from './scripts/main/comfyVideo.js';
 import { setupWildcardsHandlers } from './scripts/main/wildCards.js';
 import { setupTagger } from './scripts/main/imageTagger.js';
 
@@ -90,6 +91,7 @@ async function initializeApp() {
   setupCivitai();
   setupWallpaper();
   setupImageSave();
+  setupComfyVideo();
 
   // Ensure wildcards list are set up before tag auto-complete
   setupWildcardsHandlers();
