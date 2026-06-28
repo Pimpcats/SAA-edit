@@ -292,6 +292,7 @@
         "lora_library_scanning": "Scanning {0}/{1}...",
         "lora_library_done": "Done. {0}/{1} matched on civitai{2}.",
         "gallery_set_wallpaper": "Set as desktop background",
+        "gallery_save_image": "Save image (with settings)",
         "gallery_send_settings": "Send",
         "gallery_send_settings_title": "Apply all settings from this image",
         "gallery_send_settings_done": "Sent!",

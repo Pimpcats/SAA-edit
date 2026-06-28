@@ -1,5 +1,6 @@
 import { SAMPLER_WEBUI, SCHEDULER_WEBUI } from './language.js';
 import { callback_myCharacterList_updateThumb, callback_myViewList_Update } from './callbacks.js';
+import { restoreSaaState, parseSaaState } from './saaState.js';
 
 // Shared "apply A1111 settings" logic, used by both the Image Info drop panel
 // and the gallery "Send" button. Takes a parsedMetadata object (from
@@ -223,4 +224,10 @@ export function applyImageSettings(parsedMetadata, mode = 'all', opts = {}) {
     if (mode === 'settings' || mode === 'all') applySettings(parsedMetadata, opts);
     // (landscape is set inside applySettings based on the image's orientation)
     if (globalThis.ai?.ai_select) globalThis.ai.ai_select.setValue(0);
+
+    // If the image was saved by this app with embedded UI state, restore the
+    // exact view-tag/character selections (random/none included) — this takes
+    // precedence over anything inferred from the prompt above.
+    const saved = parseSaaState(parsedMetadata.saaState);
+    if (saved) restoreSaaState(saved);
 }

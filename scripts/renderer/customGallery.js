@@ -1,6 +1,7 @@
 import { customCommonOverlay, addDragFunctionality } from './customOverlay.js';
 import { parseGenerationParameters } from './components/imageInfoMetadata.js';
 import { applyImageSettings } from './applyImageSettings.js';
+import { captureSaaState, embedSaaState, restoreSaaState } from './saaState.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 function setupScrollableContainer(container) {
@@ -130,6 +131,7 @@ export function setupGallery(containerId) {
     let images = [];
     let seeds = [];
     let tags = [];
+    let states = [];   // captured UI state (view/character dropdowns) per image
     let renderedImageCount = 0;
 
     const container = document.querySelector(`.${containerId}`);
@@ -142,6 +144,7 @@ export function setupGallery(containerId) {
         images = [];
         seeds = [];
         tags = [];
+        states = [];
         renderedImageCount = 0;
         currentIndex = 0;
         container.innerHTML = '';
@@ -152,9 +155,12 @@ export function setupGallery(containerId) {
             globalThis.mainGallery.clearGallery();
         }
 
-        images.push(base64); 
+        images.push(base64);
         seeds.push(seed);
         tags.push(tagsString || '');
+        // Snapshot the current view-tag / character dropdown state so it can be
+        // embedded if this image is later saved with settings.
+        states.push(captureSaaState());
 
         if (seeds.length !== tags.length || images.length !== seeds.length) {
             console.warn('[appendImageData] Mismatch: images:', images.length, 'seeds:', seeds.length, 'tags:', tags.length);
@@ -787,6 +793,33 @@ export function setupGallery(containerId) {
                 }
             });
             menuEl.appendChild(item);
+
+            // Save the image to a file with the app's UI state embedded, so
+            // dropping it back in restores the exact view/character selections.
+            const saveItem = document.createElement('div');
+            saveItem.style.cssText = 'padding:8px 12px;cursor:pointer;border-radius:6px;white-space:nowrap;';
+            saveItem.textContent = LANG.gallery_save_image || 'Save image (with settings)';
+            saveItem.addEventListener('mouseover', () => { saveItem.style.background = 'rgba(255,255,255,0.12)'; });
+            saveItem.addEventListener('mouseout', () => { saveItem.style.background = 'transparent'; });
+            saveItem.addEventListener('click', () => {
+                close();
+                let idx = currentIndex;
+                if (img.classList.contains('cg-preview-image') && img.dataset.domIndex !== undefined) {
+                    idx = images.length - 1 - Number.parseInt(img.dataset.domIndex);
+                }
+                let src = images[idx];
+                if (!src) return;
+                if (!src.startsWith('data:')) src = 'data:image/png;base64,' + src;
+                const out = states[idx] ? embedSaaState(src, states[idx]) : src;
+                const a = document.createElement('a');
+                a.href = out;
+                a.download = `saa_${seeds[idx] || 'image'}.png`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
+            menuEl.appendChild(saveItem);
+
             document.body.appendChild(menuEl);
             setTimeout(() => document.addEventListener('mousedown', onDoc, true), 0);
         }, true);
@@ -814,6 +847,7 @@ export function setupGallery(containerId) {
                 }
                 const md = { fileName: 'gallery', fileType: 'image/png', generationParameters: result?.metadata };
                 const parsed = parseGenerationParameters(md);
+                parsed.saaState = result?.metadata?.['saa-state'] || null;
                 const hasEmbedded = parsed.positivePrompt || parsed.otherParams;
                 if (hasEmbedded) {
                     applyImageSettings(parsed, 'all');
@@ -825,6 +859,9 @@ export function setupGallery(containerId) {
                         if (!Number.isNaN(s)) globalThis.generate.seed.setValue(s);
                     }
                 }
+                // Gallery images aren't embedded until saved, so prefer the
+                // exact in-memory state for the active image when available.
+                if (!parsed.saaState && states?.[currentIndex]) restoreSaaState(states[currentIndex]);
                 sendButton.textContent = LANG.gallery_send_settings_done || 'Sent!';
             } catch (err) {
                 console.error('[gallery] send settings failed:', err);

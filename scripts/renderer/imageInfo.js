@@ -604,6 +604,7 @@ export function setupImageUploadOverlay() {
         const modelType = globalThis.dropdownList.model_type.getValue();
         const parsedMetadata = parseGenerationParameters(metadata);
         parsedMetadata.nodes = metadata.generationParameters || null;
+        parsedMetadata.saaState = metadata.generationParameters?.['saa-state'] || null;
         globalThis.currentImageMetadata = parsedMetadata;
         metadataContainer.innerHTML = '';
         
