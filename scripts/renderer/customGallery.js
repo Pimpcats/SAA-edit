@@ -580,7 +580,7 @@ export function setupGallery(containerId) {
                     currentIndex = images.length - 1 - domIndex;
                     mainImage.src = images[currentIndex];
                     updatePreviewBorders();
-                    previewImage.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    centerThumbHorizontally(previewImage);
                 }
             });
         }
@@ -627,7 +627,7 @@ export function setupGallery(containerId) {
         updatePreviewBorders();
         const currentPreview = previewContainer.querySelector(`.cg-preview-image[data-domIndex="${images.length - 1 - currentIndex}"]`);
         if (currentPreview) {
-            currentPreview.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            centerThumbHorizontally(currentPreview);
         }
 
         ensureSwitchModeButton(container, () => {
@@ -642,6 +642,19 @@ export function setupGallery(containerId) {
         adjustPreviewContainer(previewContainer);
     }
     
+    // Center a thumbnail inside the horizontal preview strip WITHOUT scrolling
+    // the page. scrollIntoView() walks every scrollable ancestor (including the
+    // whole app), so when the user is scrolled up it yanks them down to the
+    // gallery whenever a new image lands; scrolling only the strip avoids that.
+    function centerThumbHorizontally(thumb) {
+        const scroller = container.querySelector('.cg-preview-container');
+        if (!thumb || !scroller) return;
+        const tRect = thumb.getBoundingClientRect();
+        const sRect = scroller.getBoundingClientRect();
+        const delta = (tRect.left + tRect.width / 2) - (sRect.left + sRect.width / 2);
+        if (Math.abs(delta) > 1) scroller.scrollBy({ left: delta, behavior: 'smooth' });
+    }
+
     function updatePreviewBorders() {
         const previewImages = container.querySelectorAll('.cg-preview-image');
         for (const [domIndex, child] of [...previewImages].entries()) {
@@ -651,7 +664,7 @@ export function setupGallery(containerId) {
         }
         const domIndex = images.length - 1 - currentIndex;
         if (domIndex >= 0 && domIndex < previewImages.length) {
-            previewImages[domIndex].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            centerThumbHorizontally(previewImages[domIndex]);
         }
     }
 
