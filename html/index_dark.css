@@ -80,7 +80,7 @@ body {
     margin: 4px 0;
 }
 
-.character-swap-select, .character-swap-select option {
+.character-swap-select, .character-swap-select option, .backgrounds-cat-select, .backgrounds-cat-select option {
     background: rgb(39, 39, 42);
     color: gainsboro;
 }

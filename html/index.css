@@ -339,6 +339,14 @@ html, body {
     overflow-y: auto;
     padding: 4px;
 }
+.backgrounds-popup-catrow { display: flex; align-items: center; gap: 8px; padding: 4px 2px; }
+.backgrounds-cat-select {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: rgba(0,0,0,0.25);
+    color: inherit;
+}
 
 /* Make the whole app scrollable so the top settings are always reachable */
 #full-body {

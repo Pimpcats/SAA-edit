@@ -17,10 +17,12 @@ export function setupBackgroundsEditor(containerId) {
         return globalThis.cachedFiles.language[globalThis.globalSettings.language];
     }
 
+    let currentCategory = 'background';
+
     function getList() {
         const viewTags = globalThis.cachedFiles.viewTags;
-        if (!Array.isArray(viewTags.background)) viewTags.background = [];
-        return viewTags.background;
+        if (!Array.isArray(viewTags[currentCategory])) viewTags[currentCategory] = [];
+        return viewTags[currentCategory];
     }
 
     async function persist() {
@@ -98,7 +100,7 @@ export function setupBackgroundsEditor(containerId) {
         const header = document.createElement('div');
         header.className = 'backgrounds-popup-header';
         const title = document.createElement('span');
-        title.textContent = LANG.backgrounds_title || 'Edit Backgrounds';
+        title.textContent = LANG.view_tags_title || 'Edit View Tags';
         const close = document.createElement('button');
         close.className = 'backgrounds-popup-close';
         close.textContent = '✕';
@@ -109,12 +111,41 @@ export function setupBackgroundsEditor(containerId) {
 
         const listEl = document.createElement('div');
         listEl.className = 'backgrounds-popup-list';
+
+        // Category selector: Angle / Camera / Background / Style
+        const catRow = document.createElement('div');
+        catRow.className = 'backgrounds-popup-catrow';
+        const catLabel = document.createElement('span');
+        catLabel.textContent = LANG.view_tags_category || 'List:';
+        const catSelect = document.createElement('select');
+        catSelect.className = 'backgrounds-cat-select';
+        const cats = [
+            ['angle', LANG.view_angle || 'Angle'],
+            ['camera', LANG.view_camera || 'Camera'],
+            ['background', LANG.view_background || 'Background'],
+            ['style', LANG.view_style || 'Style']
+        ];
+        for (const [val, label] of cats) {
+            const o = document.createElement('option');
+            o.value = val;
+            o.textContent = label;
+            catSelect.appendChild(o);
+        }
+        catSelect.value = currentCategory;
+        catSelect.addEventListener('change', () => {
+            currentCategory = catSelect.value;
+            buildRows(listEl);
+        });
+        catRow.appendChild(catLabel);
+        catRow.appendChild(catSelect);
+        popup.appendChild(catRow);
+
         buildRows(listEl);
         popup.appendChild(listEl);
 
         const addBtn = document.createElement('button');
         addBtn.className = 'backgrounds-add';
-        addBtn.textContent = LANG.backgrounds_add || '+ Add Background';
+        addBtn.textContent = LANG.view_tags_add || '+ Add entry';
         addBtn.addEventListener('click', () => {
             getList().push('');
             buildRows(listEl);
@@ -130,7 +161,7 @@ export function setupBackgroundsEditor(containerId) {
     container.innerHTML = '';
     const editBtn = document.createElement('button');
     editBtn.className = 'backgrounds-add';
-    editBtn.textContent = getLang().backgrounds_edit || '✎ Edit Backgrounds';
+    editBtn.textContent = getLang().view_tags_edit || '✎ Edit View Tags';
     editBtn.addEventListener('click', openPopup);
     container.appendChild(editBtn);
 
