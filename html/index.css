@@ -532,7 +532,17 @@ html, body {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     color: #eee;
 }
-.bars-menu-title { font-weight: bold; padding: 4px 6px 8px; }
+.bars-menu-title { font-weight: bold; padding: 4px 6px 8px; font-size: 1.05em; }
+.settings-panel { min-width: 240px; }
+.settings-panel-section {
+    font-weight: bold;
+    opacity: 0.75;
+    padding: 8px 6px 4px;
+    margin-top: 4px;
+    border-top: 1px solid #444;
+}
+.settings-panel-bgrow { display: flex; gap: 6px; padding: 2px 4px; }
+.settings-panel-bgrow .bars-menu-restore { margin-top: 0; }
 .bars-menu-row {
     display: flex;
     align-items: center;

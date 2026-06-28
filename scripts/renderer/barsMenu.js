@@ -1,4 +1,4 @@
-const CAT = '[barsMenu]';
+const CAT = '[settingsPanel]';
 
 // The collapsible "bars" (panels) that can be hidden/shown.
 const BARS = [
@@ -19,7 +19,7 @@ const BARS = [
     ['image-infobox-container', 'Image Info']
 ];
 
-// Settings-wheel menu to hide/show bars, with a "restore all" option.
+// Settings-wheel panel: appearance (custom background image) + show/hide bars.
 export function setupBarsMenu() {
     const btn = document.getElementById('global-settings-bars-toggle');
     if (!btn) {
@@ -41,29 +41,87 @@ export function setupBarsMenu() {
         }
     }
 
-    let menu = null;
+    // Custom UI background image (shown in the empty/black space).
+    function applyBackground() {
+        const url = globalThis.globalSettings.ui_background_image || '';
+        const fb = document.getElementById('full-body');
+        if (!fb) return;
+        if (url) {
+            fb.style.backgroundImage = `url(${url})`;
+            fb.style.backgroundSize = 'cover';
+            fb.style.backgroundPosition = 'center';
+            fb.style.backgroundRepeat = 'no-repeat';
+        } else {
+            fb.style.backgroundImage = '';
+        }
+    }
+
+    let panel = null;
     function close() {
-        if (menu) {
-            menu.remove();
-            menu = null;
+        if (panel) {
+            panel.remove();
+            panel = null;
             document.removeEventListener('mousedown', onDoc, true);
         }
     }
     function onDoc(e) {
-        if (menu && !menu.contains(e.target) && e.target !== btn) close();
+        if (panel && !panel.contains(e.target) && e.target !== btn) close();
+    }
+
+    function sectionTitle(text) {
+        const t = document.createElement('div');
+        t.className = 'settings-panel-section';
+        t.textContent = text;
+        return t;
     }
 
     function open() {
         close();
         const LANG = globalThis.cachedFiles.language[globalThis.globalSettings.language];
-        menu = document.createElement('div');
-        menu.className = 'bars-menu';
+        panel = document.createElement('div');
+        panel.className = 'bars-menu settings-panel';
 
         const title = document.createElement('div');
         title.className = 'bars-menu-title';
-        title.textContent = LANG.bars_menu_title || 'Show / hide bars';
-        menu.appendChild(title);
+        title.textContent = LANG.settings_panel_title || 'Settings';
+        panel.appendChild(title);
 
+        // --- Appearance: custom background image ---
+        panel.appendChild(sectionTitle(LANG.settings_background || 'Background image'));
+        const bgRow = document.createElement('div');
+        bgRow.className = 'settings-panel-bgrow';
+        const upload = document.createElement('button');
+        upload.className = 'bars-menu-restore';
+        upload.textContent = LANG.settings_background_upload || 'Upload image';
+        const clear = document.createElement('button');
+        clear.className = 'bars-menu-restore';
+        clear.textContent = LANG.settings_background_clear || 'Clear';
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+        upload.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                globalThis.globalSettings.ui_background_image = reader.result;
+                applyBackground();
+            };
+            reader.readAsDataURL(file);
+        });
+        clear.addEventListener('click', () => {
+            globalThis.globalSettings.ui_background_image = '';
+            applyBackground();
+        });
+        bgRow.appendChild(upload);
+        bgRow.appendChild(clear);
+        bgRow.appendChild(fileInput);
+        panel.appendChild(bgRow);
+
+        // --- Show / hide bars ---
+        panel.appendChild(sectionTitle(LANG.bars_menu_title || 'Show / hide bars'));
         const hidden = new Set(getHidden());
         for (const [cls, label] of BARS) {
             if (!document.querySelector(`.${cls}`)) continue;
@@ -86,7 +144,7 @@ export function setupBarsMenu() {
             span.textContent = label;
             row.appendChild(cb);
             row.appendChild(span);
-            menu.appendChild(row);
+            panel.appendChild(row);
         }
 
         const restore = document.createElement('button');
@@ -97,20 +155,21 @@ export function setupBarsMenu() {
             applyHidden();
             open();
         });
-        menu.appendChild(restore);
+        panel.appendChild(restore);
 
         const r = btn.getBoundingClientRect();
-        menu.style.top = `${r.bottom + 4}px`;
-        menu.style.right = `${Math.max(8, globalThis.innerWidth - r.right)}px`;
-        document.body.appendChild(menu);
+        panel.style.top = `${r.bottom + 4}px`;
+        panel.style.right = `${Math.max(8, globalThis.innerWidth - r.right)}px`;
+        document.body.appendChild(panel);
         setTimeout(() => document.addEventListener('mousedown', onDoc, true), 0);
     }
 
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (menu) close(); else open();
+        if (panel) close(); else open();
     });
 
     applyHidden();
-    return { applyHidden };
+    applyBackground();
+    return { applyHidden, applyBackground };
 }

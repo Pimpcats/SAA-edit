@@ -322,6 +322,7 @@ export function updateSettings() {
     }
     if (globalThis.barsMenu?.applyHidden) {
         globalThis.barsMenu.applyHidden();
+        globalThis.barsMenu.applyBackground?.();
     }
 
     globalThis.ai.interface.updateDefaults(SETTINGS.ai_interface);

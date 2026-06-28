@@ -91,6 +91,7 @@ const defaultSettings = {
     "background_toggles_seeded": false,
     "civitai_api_key": "",
     "hidden_bars": [],
+    "ui_background_image": "",
 
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
