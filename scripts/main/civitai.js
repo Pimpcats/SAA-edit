@@ -97,6 +97,75 @@ function hashFile(filePath) {
     return digest;
 }
 
+// ---- Local LoRA thumbnails (same-named image next to the .safetensors) ----
+function findLoraThumbPath(loraFilePath) {
+    const dir = path.dirname(loraFilePath);
+    const base = path.basename(loraFilePath).replace(/\.safetensors$/i, '');
+    // Common conventions: <base>.png and the civitai-helper <base>.preview.png,
+    // plus jpg/jpeg/webp variants.
+    const candidates = [
+        `${base}.png`, `${base}.preview.png`,
+        `${base}.jpg`, `${base}.preview.jpg`,
+        `${base}.jpeg`, `${base}.preview.jpeg`,
+        `${base}.webp`, `${base}.preview.webp`
+    ];
+    for (const c of candidates) {
+        const p = path.join(dir, c);
+        if (fs.existsSync(p)) return p;
+    }
+    return null;
+}
+
+function imageFileToDataUrl(p) {
+    let ext = path.extname(p).toLowerCase().replace('.', '');
+    if (ext === 'jpg') ext = 'jpeg';
+    if (!['png', 'jpeg', 'webp', 'gif'].includes(ext)) ext = 'png';
+    return `data:image/${ext};base64,${fs.readFileSync(p).toString('base64')}`;
+}
+
+// Return the local same-named thumbnail for a LoRA (no network).
+function getLoraThumb(loraName) {
+    try {
+        const filePath = resolveLoraPath(loraName);
+        if (!filePath) return { ok: false, error: 'file-not-found' };
+        const thumbPath = findLoraThumbPath(filePath);
+        if (!thumbPath) return { ok: true, found: false };
+        return { ok: true, found: true, thumb: imageFileToDataUrl(thumbPath), path: thumbPath };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
+// If no local thumbnail exists, fetch the LoRA's first civitai image and save it
+// next to the .safetensors (as <base>.png/.jpg/...) so it becomes the cached
+// local thumbnail. Returns the data URL.
+async function downloadLoraThumb(loraName, apiKey) {
+    try {
+        const filePath = resolveLoraPath(loraName);
+        if (!filePath) return { ok: false, error: 'file-not-found' };
+        const existing = findLoraThumbPath(filePath);
+        if (existing) return { ok: true, found: true, source: 'local', thumb: imageFileToDataUrl(existing), path: existing };
+
+        const hash = hashFile(filePath);
+        const res = await lookupByHash(hash, apiKey);
+        if (!res.found) return { ok: true, found: false };
+        const imgUrl = (res.data.images || []).find(im => im && im.url)?.url;
+        if (!imgUrl) return { ok: true, found: false };
+
+        const resp = await fetch(imgUrl);
+        if (!resp.ok) throw new Error(`download HTTP ${resp.status}`);
+        const buf = Buffer.from(await resp.arrayBuffer());
+        let ext = (imgUrl.split('?')[0].split('.').pop() || 'png').toLowerCase();
+        if (!['png', 'jpg', 'jpeg', 'webp'].includes(ext)) ext = 'png';
+        const savePath = filePath.replace(/\.safetensors$/i, '') + `.${ext}`;
+        fs.writeFileSync(savePath, buf);
+        const mime = ext === 'jpg' ? 'jpeg' : ext;
+        return { ok: true, found: true, source: 'civitai', path: savePath, thumb: `data:image/${mime};base64,${buf.toString('base64')}` };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
 // Use the civitai.red mirror (proxies the civitai API + media).
 const CIVITAI_BASE = 'https://civitai.red';
 
@@ -164,6 +233,8 @@ export function setupCivitai() {
     ipcMain.handle('civitai-test-key', async (event, apiKey) => {
         return civitaiTestKey(apiKey);
     });
+    ipcMain.handle('lora-thumb', async (event, loraName) => getLoraThumb(loraName));
+    ipcMain.handle('lora-thumb-download', async (event, loraName, apiKey) => downloadLoraThumb(loraName, apiKey));
 }
 
-export { civitaiLookupLora, civitaiTestKey };
+export { civitaiLookupLora, civitaiTestKey, getLoraThumb, downloadLoraThumb };

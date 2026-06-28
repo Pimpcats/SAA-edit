@@ -96,6 +96,8 @@ contextBridge.exposeInMainWorld('api', {
   appendCharacter: async (displayName, tag) => ipcRenderer.invoke('append-character', displayName, tag),
   civitaiLookupLora: async (loraName, apiInterface, apiKey) => ipcRenderer.invoke('civitai-lookup-lora', loraName, apiInterface, apiKey),
   civitaiTestKey: async (apiKey) => ipcRenderer.invoke('civitai-test-key', apiKey),
+  getLoraThumb: async (loraName) => ipcRenderer.invoke('lora-thumb', loraName),
+  downloadLoraThumb: async (loraName, apiKey) => ipcRenderer.invoke('lora-thumb-download', loraName, apiKey),
   setWallpaper: async (dataUrl) => ipcRenderer.invoke('set-wallpaper', dataUrl),
   saveGeneratedImage: async (dataUrl, filename, dir) => ipcRenderer.invoke('save-generated-image', dataUrl, filename, dir),
   getDefaultSaveDir: async () => ipcRenderer.invoke('get-default-save-dir'),
