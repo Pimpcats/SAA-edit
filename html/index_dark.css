@@ -239,6 +239,27 @@ body {
     background: #e74c3c;
 }
 
+#cg-send-button { background: #2ecc71; }
+
+/* Horizontal toolbar: Seed / Tags / Send across the top of the gallery */
+.cg-toolbar {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    left: auto;
+    z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    align-items: center;
+}
+.cg-toolbar .cg-button {
+    position: static;
+    top: auto; right: auto; left: auto;
+    opacity: 0.55;
+}
+.cg-toolbar .cg-button:hover { opacity: 1; }
+
 /* Switch Mode Button for Thumb */
 #cg-thumb-switch-mode-button {
     position: absolute; 

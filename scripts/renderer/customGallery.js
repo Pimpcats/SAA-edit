@@ -699,6 +699,18 @@ export function setupGallery(containerId) {
         }
     }
 
+    // A horizontal toolbar across the top of the gallery for the Seed / Tags /
+    // Send buttons (instead of absolutely-stacked overlapping buttons).
+    function getGalleryToolbar() {
+        let bar = container.querySelector('.cg-toolbar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'cg-toolbar';
+            container.appendChild(bar);
+        }
+        return bar;
+    }
+
     function ensureSeedButton() {
         let seedButton = document.getElementById('cg-seed-button');
         if (!seedButton) {
@@ -729,7 +741,7 @@ export function setupGallery(containerId) {
                     updateSeedInputs(seedToCopy);
                 }
             });
-            container.appendChild(seedButton);
+            getGalleryToolbar().appendChild(seedButton);
         }
     }
     
@@ -772,7 +784,7 @@ export function setupGallery(containerId) {
                     }, 2000);
                 }
             });
-            container.appendChild(tagButton);
+            getGalleryToolbar().appendChild(tagButton);
         }
     }
 
@@ -854,7 +866,7 @@ export function setupGallery(containerId) {
         let sendButton = document.getElementById('cg-send-button');
         if (sendButton) return;
         const LANG = globalThis.cachedFiles.language[globalThis.globalSettings.language];
-        const label = LANG.gallery_send_settings || 'Send';
+        const label = LANG.gallery_send_settings || 'Send all settings';
         sendButton = document.createElement('button');
         sendButton.id = 'cg-send-button';
         sendButton.className = 'cg-button';
@@ -895,6 +907,6 @@ export function setupGallery(containerId) {
                 setTimeout(() => { sendButton.textContent = label; }, 2000);
             }
         });
-        container.appendChild(sendButton);
+        getGalleryToolbar().appendChild(sendButton);
     }
 }
