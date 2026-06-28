@@ -91,6 +91,7 @@ const defaultSettings = {
     "multi_char_emphasis_tag": "1girl, 1guy",
     "multi_char_emphasis_list": [],
     "multi_char_emphasis_seeded": false,
+    "multi_char_emphasis_default_v2": false,
 
     "custom_toggles": [],
     "background_toggles": [],

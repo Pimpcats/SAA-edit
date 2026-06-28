@@ -26,6 +26,17 @@ export function setupMultiCharEmphasisList(containerId) {
             }
             S.multi_char_emphasis_seeded = true;
         }
+        // One-time migration: the old default was a single "2girls" tag — upgrade
+        // it to the new 1girl + 1guy default, unless the user customized the list.
+        if (!S.multi_char_emphasis_default_v2) {
+            const list = S.multi_char_emphasis_list;
+            const isOldDefault = Array.isArray(list) && list.length === 1
+                && list[0] && String(list[0].tag).trim().toLowerCase() === '2girls';
+            if (isOldDefault) {
+                S.multi_char_emphasis_list = [{ tag: '1girl', on: true }, { tag: '1guy', on: true }];
+            }
+            S.multi_char_emphasis_default_v2 = true;
+        }
         return S.multi_char_emphasis_list;
     }
 
