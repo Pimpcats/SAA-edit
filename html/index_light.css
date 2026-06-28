@@ -279,7 +279,7 @@ body {
 
 /* collapsed style */
 .image-infobox-header, .add-lora-header, .model-settings-header, .highres-fix-header, .refiner-header, 
-.controlnet-header, .regional-condition-header, .jsonlist-header, .adetailer-header, .queue-header, .custom-toggles-header, .backgrounds-header, .character-editor-header, .lora-library-header {
+.controlnet-header, .regional-condition-header, .jsonlist-header, .adetailer-header, .queue-header, .custom-toggles-header, .backgrounds-header, .character-editor-header, .lora-library-header, .video-tab-header {
     padding-right: 2px;
     display: flex;
     align-items: anchor-center;
@@ -319,7 +319,7 @@ body {
 
 .highres-fix-header-span, .refiner-header-span, .controlnet-header-span, .regional-condition-header-span, 
 .system-settings-header-span, .gallery-main-header-span, .gallery-thumb-header-span,
-.model-settings-span, .add-lora-span, .jsonlist-header-span, .adetailer-header-span, .queue-header-span, .custom-toggles-header-span, .backgrounds-header-span, .character-editor-header-span, .lora-library-header-span {
+.model-settings-span, .add-lora-span, .jsonlist-header-span, .adetailer-header-span, .queue-header-span, .custom-toggles-header-span, .backgrounds-header-span, .character-editor-header-span, .lora-library-header-span, .video-tab-header-span {
     display: flex;
     justify-self: flex-end;
 }
@@ -521,7 +521,7 @@ body {
 .highres-fix-container, .refiner-container, .controlnet-container, .regional-condition-container, .model-settings-container, .add-lora-container, 
 .system-settings-container, .jsonlist-container, .adetailer-container, .queue-container, 
 .highres-fix-main, .refiner-main, .controlnet-main, .regional-condition-main, .model-settings-main, .add-lora-main, 
-.system-settings-main, .jsonlist-main, .adetailer-main, .queue-main, .custom-toggles-container, .custom-toggles-main, .backgrounds-container, .backgrounds-main, .character-editor-container, .character-editor-main, .lora-library-container, .lora-library-main {
+.system-settings-main, .jsonlist-main, .adetailer-main, .queue-main, .custom-toggles-container, .custom-toggles-main, .backgrounds-container, .backgrounds-main, .character-editor-container, .character-editor-main, .lora-library-container, .lora-library-main, .video-tab-container, .video-tab-main {
     padding: 1px;
     box-sizing: border-box;
     background: rgb(230, 227, 210); /* Warm off-white */

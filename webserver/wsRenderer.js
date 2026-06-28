@@ -31,6 +31,7 @@ import { setupCustomToggles } from '../scripts/renderer/customToggles.js';
 import { setupBackgroundsEditor } from '../scripts/renderer/backgroundsEditor.js';
 import { setupCharacterEditor } from '../scripts/renderer/characterEditor.js';
 import { setupLoraLibrary } from '../scripts/renderer/loraLibrary.js';
+import { setupVideoTab } from '../scripts/renderer/videoTab.js';
 import { setupCharacterSwap } from '../scripts/renderer/characterSwap.js';
 import { setupMultiCharEmphasisList } from '../scripts/renderer/multiCharEmphasis.js';
 import { setupBarsMenu } from '../scripts/renderer/barsMenu.js';
@@ -151,6 +152,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         backgrounds: setupCollapsed('backgrounds', true),
         characterEditor: setupCollapsed('character-editor', true),
         loraLibrary: setupCollapsed('lora-library', true),
+        videoTab: setupCollapsed('video-tab', true),
     }
 }
 
@@ -549,6 +551,7 @@ async function init() {
 
         // LoRA library browser (civitai)
         globalThis.loraLibrary = setupLoraLibrary('lora-library-main');
+        globalThis.videoTab = setupVideoTab('video-tab-main');
 
         // Character slot swap
         globalThis.characterSwap = setupCharacterSwap('character-swap-row');

@@ -86,6 +86,27 @@ function patchGraph(graphIn, params, uploadedName) {
         if (negRef && g[negRef]?.inputs && 'text' in g[negRef].inputs && params.negative !== undefined) g[negRef].inputs.text = params.negative;
     }
 
+    // Model / clip / vae / speed-LoRA loaders — let the user point the template
+    // at their downloaded files without editing JSON.
+    for (const [, n] of entries) {
+        if (!n.inputs) continue;
+        const ct = String(n.class_type || '').toLowerCase();
+        if (params.modelName && (ct.includes('unetloader') || ct.includes('checkpointloader'))) {
+            if ('unet_name' in n.inputs) n.inputs.unet_name = params.modelName;
+            if ('ckpt_name' in n.inputs) n.inputs.ckpt_name = params.modelName;
+        }
+        // CLIPLoader (text encoder) but NOT CLIPVisionLoader.
+        if (params.clipName && ct.includes('cliploader') && !ct.includes('vision')) {
+            if ('clip_name' in n.inputs) n.inputs.clip_name = params.clipName;
+        }
+        if (params.vaeName && ct.includes('vaeloader')) {
+            if ('vae_name' in n.inputs) n.inputs.vae_name = params.vaeName;
+        }
+        if (params.loraName && ct.includes('lora')) {
+            if ('lora_name' in n.inputs) n.inputs.lora_name = params.loraName;
+        }
+    }
+
     // Samplers (WAN 2.2 may have two) and video output nodes.
     for (const [, n] of entries) {
         const ct = String(n.class_type || '').toLowerCase();

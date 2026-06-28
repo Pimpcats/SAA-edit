@@ -393,6 +393,18 @@ export const sharedBodyHTML = `
             <div class="lora-library-main"></div>
           </div>
 
+          <div class="video-tab-container">
+            <div class="video-tab-header">
+              <div></div>
+              <div></div>
+              <div class="video-tab-header-span">
+                <span id="video-tab-span">Video (ComfyUI)</span>
+                <img id="video-tab-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="video-tab-main"></div>
+          </div>
+
         </div>
       </div>
     </div>`;

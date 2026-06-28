@@ -107,6 +107,11 @@ const defaultSettings = {
     "floating_buttons_enable": false,
     "auto_save_generated": true,
     "auto_save_dir": "",
+    "video_model_name": "",
+    "video_clip_name": "",
+    "video_vae_name": "",
+    "video_lora_name": "",
+    "video_negative": "",
 
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
