@@ -122,17 +122,20 @@ export function embedSaaState(dataUrl, stateObj) {
         const bytes = dataUrlToBytes(dataUrl);
         if (!isPng(bytes)) return dataUrl;
 
-        const keyword = 'saa-state';
-        const text = JSON.stringify(stateObj);
-        const dataLen = keyword.length + 1 + text.length;
+        // The reader decodes the text as UTF-8, so encode it as UTF-8 — otherwise
+        // non-Latin characters (e.g. Japanese character names) get truncated and
+        // the JSON is corrupted, making restore silently fail.
+        const enc = new TextEncoder();
+        const kwBytes = enc.encode('saa-state');
+        const textBytes = enc.encode(JSON.stringify(stateObj));
+        const dataLen = kwBytes.length + 1 + textBytes.length;
 
         // type + data (used for both the chunk body and the CRC)
         const typeAndData = new Uint8Array(4 + dataLen);
-        const writeAscii = (s, off) => { for (let i = 0; i < s.length; i++) typeAndData[off + i] = s.charCodeAt(i) & 0xFF; return off + s.length; };
-        let p = writeAscii('tEXt', 0);
-        p = writeAscii(keyword, p);
-        typeAndData[p++] = 0;
-        writeAscii(text, p);
+        typeAndData[0] = 0x74; typeAndData[1] = 0x45; typeAndData[2] = 0x58; typeAndData[3] = 0x74; // 'tEXt'
+        typeAndData.set(kwBytes, 4);
+        typeAndData[4 + kwBytes.length] = 0;
+        typeAndData.set(textBytes, 4 + kwBytes.length + 1);
 
         const chunk = new Uint8Array(12 + dataLen);
         const dv = new DataView(chunk.buffer);
