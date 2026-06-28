@@ -61,11 +61,13 @@ export const sharedBodyHTML = `
       <div class="dropdown-character"></div>
       <div class="dropdown-character-regional"></div>
 
-      <div class="character-swap-row"></div>
+      <div class="char-controls-row">
+        <div class="character-swap-row"></div>
 
-      <div class="multi-char-emphasis-row">
-        <div class="multi-char-emphasis-enable"></div>
-        <div class="multi-char-emphasis-tag"></div>
+        <div class="multi-char-emphasis-row">
+          <div class="multi-char-emphasis-enable"></div>
+          <div class="multi-char-emphasis-tag"></div>
+        </div>
       </div>
 
       <div id="split">

@@ -519,8 +519,27 @@ html, body {
     overflow-x: hidden;
 }
 
+/* Swap + emphasize controls share one row to reclaim the empty space */
+.char-controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 24px;
+    row-gap: 4px;
+    margin: 2px 10px;
+}
+.char-controls-row .character-swap-row,
+.char-controls-row .multi-char-emphasis-row { flex: 0 1 auto; }
+.multi-char-emphasis-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+}
+.char-controls-row .character-swap { margin: 0; }
+
 /* Multi-character emphasis mini checkmark bars (stack left-to-right) */
-.mce-status { width: 100%; flex: 0 0 100%; font-size: 0.85em; padding: 2px 2px; }
+.mce-status { flex: 0 1 auto; font-size: 0.85em; padding: 2px 2px; }
 .mce-status.active { color: #1ce088; }
 .mce-status.warn { color: #f1c40f; }
 .mce-status.off { opacity: 0.6; }
