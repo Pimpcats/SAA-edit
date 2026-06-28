@@ -25,6 +25,7 @@ import { setupImageUploadOverlay } from './renderer/imageInfo.js';
 import { setupThemeToggle } from './renderer/theme.js';
 import { setupRightClickMenu, addSpellCheckSuggestions } from './renderer/components/myRightClickMenu.js';
 import { setupAutoInfinite } from './renderer/autoInfinite.js';
+import { setupSeedVariations } from './renderer/seedVariations.js';
 import { setupCustomToggles } from './renderer/customToggles.js';
 import { setupBackgroundsEditor } from './renderer/backgroundsEditor.js';
 import { setupCharacterEditor } from './renderer/characterEditor.js';
@@ -540,6 +541,9 @@ async function init(){
 
         // Infinite auto-generate (right-click the Create Image button)
         setupAutoInfinite();
+
+        // Batch seed variations (right-click the batch Create Image button)
+        setupSeedVariations();
 
         // Settings wheel: show/hide bars
         globalThis.barsMenu = setupBarsMenu();

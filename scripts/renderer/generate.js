@@ -817,6 +817,21 @@ export async function generateImage(dataPack){
             globalThis.generate.loadingMessage = LANG.generate_warmup.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
         const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1);
+
+        // Seed variations: keep the base seed fixed for every image in the batch
+        // and blend in a per-image subseed at a low strength, so each result is a
+        // close-but-not-identical variation of the seed you liked.
+        let effSeed = createPromptResult.randomSeed;
+        let subseed = -1;
+        let subseedStrength = 0;
+        const varState = globalThis.generate.variation;
+        if (varState && varState.active) {
+            effSeed = varState.base;
+            subseed = (varState.base + loop + 1) >>> 0;   // deterministic, unique per image
+            subseedStrength = varState.strength;
+            createPromptResult.randomSeed = effSeed;       // info/gallery reflect the base seed
+        }
+
         const landscape = globalThis.generate.landscape.getValue();
         const width = landscape?globalThis.generate.height.getValue():globalThis.generate.width.getValue();
         const height = landscape?globalThis.generate.width.getValue():globalThis.generate.height.getValue();
@@ -879,7 +894,9 @@ export async function generateImage(dataPack){
             height: height,
             cfg: globalThis.generate.cfg.getValue(),
             step: globalThis.generate.step.getValue(),
-            seed: createPromptResult.randomSeed,
+            seed: effSeed,
+            subseed: subseed,
+            subseedStrength: subseedStrength,
             sampler: globalThis.generate.sampler.getValue(),
             scheduler: globalThis.generate.scheduler.getValue(),            
             ...(SETTINGS.api_model_type === 'Checkpoint' ? {
@@ -928,9 +945,13 @@ export async function generateImage(dataPack){
         );
     }
 
+    // A variation batch is a one-shot request; clear it so normal generations
+    // afterwards are not silently locked to the same base seed.
+    if (globalThis.generate.variation) globalThis.generate.variation.active = false;
+
     globalThis.generate.generate_single.setClickable(true);
     globalThis.generate.generate_batch.setClickable(true);
-    globalThis.generate.generate_same.setClickable(true);    
+    globalThis.generate.generate_same.setClickable(true);
     
     if(globalThis.globalSettings.generate_auto_start) {
         await startQueue();

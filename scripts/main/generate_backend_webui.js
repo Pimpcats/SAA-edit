@@ -264,8 +264,8 @@ class WebUI {
 
     async run (generateData) {
         return new Promise((resolve, reject) => {
-            const {addr, auth, uuid, model, vpred, positive, negative, width, height, 
-                cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet, adetailer} = generateData;
+            const {addr, auth, uuid, model, vpred, positive, negative, width, height,
+                cfg, step, seed, subseed, subseedStrength, sampler, scheduler, refresh, hifix, refiner, controlnet, adetailer} = generateData;
             this.addr = addr;
             this.refresh = refresh;
             this.lastProgress = -1;
@@ -285,6 +285,8 @@ class WebUI {
                 "scheduler": scheduler,
                 "batch_size" : 1,
                 "seed": seed,
+                "subseed": (typeof subseed === 'number') ? subseed : -1,
+                "subseed_strength": (typeof subseedStrength === 'number') ? subseedStrength : 0,
                 "cfg_scale": cfg,
                 "save_images": true,
                 "alwayson_scripts": {},
@@ -392,8 +394,8 @@ class WebUI {
 
     async runRegional(generateData) {
         return new Promise((resolve, reject) => {
-            const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, 
-                    width, height, cfg, step, seed, sampler, scheduler, refresh, 
+            const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative,
+                    width, height, cfg, step, seed, subseed, subseedStrength, sampler, scheduler, refresh,
                     hifix, refiner, regional, controlnet, adetailer} = generateData;
             this.addr = addr;
             this.refresh = refresh;
@@ -417,6 +419,8 @@ class WebUI {
                 "scheduler": scheduler,
                 "batch_size" : 1,
                 "seed": seed,
+                "subseed": (typeof subseed === 'number') ? subseed : -1,
+                "subseed_strength": (typeof subseedStrength === 'number') ? subseedStrength : 0,
                 "cfg_scale": cfg,
                 "save_images": true,
                 "alwayson_scripts": {

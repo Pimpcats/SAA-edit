@@ -348,6 +348,65 @@ html, body {
     color: inherit;
 }
 
+/* Batch seed-variations popup */
+.seed-variations-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, 90vw);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(17, 17, 17, 0.98);
+    border: 2px solid #333;
+    border-radius: 10px;
+    padding: 16px;
+    z-index: 10060;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    color: #eee;
+}
+.seed-variations-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+}
+.seed-variations-close {
+    width: 28px; height: 28px;
+    border: none; border-radius: 8px;
+    background: rgba(120,120,120,0.3);
+    color: inherit; cursor: pointer;
+}
+.seed-variations-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.seed-variations-count {
+    width: 70px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: rgba(0,0,0,0.25);
+    color: inherit;
+}
+.seed-variations-strength { width: 100%; }
+.seed-variations-strval { opacity: 0.85; font-variant-numeric: tabular-nums; }
+.seed-variations-hint { font-size: 12px; opacity: 0.7; line-height: 1.4; }
+.seed-variations-go {
+    margin-top: 4px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 10px;
+    background: #3a7bd5;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+.seed-variations-go:hover { background: #4a8be5; }
+
 /* Make the whole app scrollable so the top settings are always reachable */
 #full-body {
     overflow-y: auto;
