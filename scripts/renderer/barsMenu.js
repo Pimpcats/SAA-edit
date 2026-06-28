@@ -136,6 +136,22 @@ export function setupBarsMenu() {
         miraRow.appendChild(miraSpan);
         panel.appendChild(miraRow);
 
+        // Floating duplicate Create Image / Batch buttons (off by default).
+        const floatRow = document.createElement('label');
+        floatRow.className = 'bars-menu-row';
+        const floatCb = document.createElement('input');
+        floatCb.type = 'checkbox';
+        floatCb.checked = !!globalThis.globalSettings.floating_buttons_enable;
+        floatCb.addEventListener('change', () => {
+            globalThis.globalSettings.floating_buttons_enable = floatCb.checked;
+            globalThis.floatingButtons?.refresh?.();
+        });
+        const floatSpan = document.createElement('span');
+        floatSpan.textContent = LANG.settings_floating_buttons || 'Floating Create Image / Batch buttons';
+        floatRow.appendChild(floatCb);
+        floatRow.appendChild(floatSpan);
+        panel.appendChild(floatRow);
+
         // --- Show / hide bars ---
         panel.appendChild(sectionTitle(LANG.bars_menu_title || 'Show / hide bars'));
         const hidden = new Set(getHidden());

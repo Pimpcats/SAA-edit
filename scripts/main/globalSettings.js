@@ -93,6 +93,7 @@ const defaultSettings = {
     "hidden_bars": ["highres-fix-container", "refiner-container", "controlnet-container", "adetailer-container", "regional-condition-container", "jsonlist-container", "custom-toggles-container", "model-settings-container", "system-settings-container"],
     "ui_background_image": "",
     "mira_itu_enable": false,
+    "floating_buttons_enable": false,
 
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "meta-llama/llama-4-maverick-17b-128e-instruct",

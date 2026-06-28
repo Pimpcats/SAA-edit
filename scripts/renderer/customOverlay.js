@@ -274,7 +274,17 @@ export function setupButtonOverlay() {
         lockButton.style.display = isMinimized ? 'none' : 'block';
     });
 
+    function floatingButtonsEnabled() {
+        return !!globalThis.globalSettings?.floating_buttons_enable;
+    }
+
     function toggleButtonOverlayVisibility() {
+        // The floating duplicate buttons are off by default; honor the setting
+        // toggled from the settings panel.
+        if (!floatingButtonsEnabled()) {
+            buttonOverlay.style.display = 'none';
+            return;
+        }
         const loadingOverlay = document.getElementById('cg-loading-overlay');
         const errorOverlay = document.getElementById('cg-error-overlay');
         buttonOverlay.style.display = (loadingOverlay || errorOverlay) ? 'none' : 'flex';
@@ -305,8 +315,12 @@ export function setupButtonOverlay() {
     const observer = new MutationObserver(toggleButtonOverlayVisibility);
     observer.observe(document.body, { childList: true, subtree: false });
 
-    return { 
-        reload: () => {            
+    // Let the settings panel toggle the floating buttons on/off live.
+    globalThis.floatingButtons = { refresh: toggleButtonOverlayVisibility };
+
+    return {
+        refresh: toggleButtonOverlayVisibility,
+        reload: () => {
             buttonContainer.innerHTML = '';
 
             const newButtons = createClonedButtons();            
