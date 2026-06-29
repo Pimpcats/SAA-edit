@@ -97,12 +97,20 @@ export function setupVideoTab(containerId) {
     // motions) become label==prompt with no lora; position entries carry a
     // describing prompt AND an associated LoRA that auto-loads on selection.
     function normEntry(e) {
-        if (typeof e === 'string') return { label: e, prompt: e, lora: '', strength: 1.0 };
+        if (typeof e === 'string') return { label: e, prompt: e, loras: [] };
+        // A position can carry a stack of LoRAs (loras: [{name, strength}, ...]) or
+        // a single legacy lora/strength pair; normalize both to a loras array.
+        let loras = [];
+        if (Array.isArray(e.loras)) {
+            loras = e.loras.filter(l => l && l.name)
+                .map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0 }));
+        } else if (e.lora) {
+            loras = [{ name: e.lora, strength: (typeof e.strength === 'number') ? e.strength : 1.0 }];
+        }
         return {
             label: e.label || e.prompt || '',
             prompt: e.prompt || e.label || '',
-            lora: e.lora || '',
-            strength: (typeof e.strength === 'number') ? e.strength : 1.0
+            loras
         };
     }
     function makeSelectRow(labelText, key) {
@@ -280,7 +288,7 @@ export function setupVideoTab(containerId) {
         row._input = sel;
         return row;
     }
-    const modelField = selectField(getLang().video_model || 'Diffusion model', 'video_model_name');
+    const modelField = selectField(getLang().video_model || 'Diffusion model (high noise)', 'video_model_name');
     // Second diffusion model for two-model WAN 2.2 (high + low noise). Left on
     // "(keep workflow default)" for single-model workflows.
     const modelLowField = selectField(getLang().video_model_low || 'Diffusion model (low noise)', 'video_model_name_low');
@@ -288,40 +296,81 @@ export function setupVideoTab(containerId) {
     const vaeField = selectField(getLang().video_vae || 'VAE', 'video_vae_name');
     const loraField = selectField(getLang().video_lora || 'Speed LoRA', 'video_lora_name');
 
-    // Extra LoRA (e.g. an NSFW / motion LoRA) — stacked onto every model path.
-    const extraLoraRow = document.createElement('div');
-    extraLoraRow.className = 'video-row';
-    const elLabel = document.createElement('span');
-    elLabel.className = 'video-label';
-    elLabel.textContent = getLang().video_extra_lora || 'Extra LoRA (NSFW/motion)';
-    const elSel = document.createElement('select');
-    elSel.className = 'video-select';
-    rebuildOptions(elSel, [], globalThis.globalSettings.video_extra_lora || '');
-    elSel.addEventListener('change', () => { globalThis.globalSettings.video_extra_lora = elSel.value; });
-    const elStrength = document.createElement('input');
-    elStrength.type = 'number'; elStrength.step = '0.05'; elStrength.min = '0'; elStrength.max = '2';
-    elStrength.style.maxWidth = '70px'; elStrength.title = getLang().video_extra_lora_strength || 'strength';
-    elStrength.value = globalThis.globalSettings.video_extra_lora_strength ?? 1.0;
-    elStrength.addEventListener('change', () => { globalThis.globalSettings.video_extra_lora_strength = Number(elStrength.value); });
-    extraLoraRow.appendChild(elLabel);
-    extraLoraRow.appendChild(elSel);
-    extraLoraRow.appendChild(elStrength);
+    // Extra LoRA STACK (NSFW / motion LoRAs). You can add as many as you like;
+    // each is chained onto every model path (both WAN 2.2 high/low). Manually
+    // added LoRAs persist; picking a Position injects that position's LoRA(s) on
+    // top (tagged "from position") without disturbing your always-on ones.
+    const extraLoraWrap = document.createElement('div');
+    extraLoraWrap.className = 'video-models';
+    const extraLoraTitle = document.createElement('div');
+    extraLoraTitle.className = 'video-outbox-label';
+    extraLoraTitle.textContent = getLang().video_extra_lora || 'Extra LoRAs (NSFW/motion) — stacked';
+    extraLoraWrap.appendChild(extraLoraTitle);
+    const extraLoraList = document.createElement('div');
+    extraLoraWrap.appendChild(extraLoraList);
 
-    // Picking a Position auto-loads its associated LoRA + strength into the Extra
-    // LoRA slot (the describing prompt is applied separately in buildPrompt).
+    // In-memory stack: [{name, strength, fromPosition}]. Seeded from settings.
+    let loraStack = (Array.isArray(globalThis.globalSettings.video_extra_loras) ? globalThis.globalSettings.video_extra_loras : [])
+        .map(l => ({ name: l.name || '', strength: (typeof l.strength === 'number') ? l.strength : 1.0, fromPosition: false }));
+
+    function persistLoraStack() {
+        // Persist only the manually-added LoRAs (position ones come from the list).
+        globalThis.globalSettings.video_extra_loras = loraStack
+            .filter(l => !l.fromPosition && l.name)
+            .map(l => ({ name: l.name, strength: l.strength }));
+    }
+
+    function renderLoraStack() {
+        extraLoraList.innerHTML = '';
+        loraStack.forEach((l, i) => {
+            const row = document.createElement('div');
+            row.className = 'video-row';
+            const sel = document.createElement('select');
+            sel.className = 'video-select';
+            rebuildOptions(sel, loraList, l.name);
+            sel.value = l.name || '';
+            sel.addEventListener('change', () => { l.name = sel.value; persistLoraStack(); });
+            const str = document.createElement('input');
+            str.type = 'number'; str.step = '0.05'; str.min = '0'; str.max = '2';
+            str.style.maxWidth = '70px'; str.title = getLang().video_extra_lora_strength || 'strength';
+            str.value = l.strength;
+            str.addEventListener('change', () => { l.strength = Number(str.value); persistLoraStack(); });
+            row.appendChild(sel);
+            row.appendChild(str);
+            if (l.fromPosition) {
+                const badge = document.createElement('span');
+                badge.className = 'video-status';
+                badge.textContent = getLang().video_lora_from_pos || '(from position)';
+                row.appendChild(badge);
+            }
+            const del = document.createElement('button');
+            del.className = 'video-editor-del';
+            del.textContent = '✕';
+            del.addEventListener('click', () => { loraStack.splice(i, 1); persistLoraStack(); renderLoraStack(); });
+            row.appendChild(del);
+            extraLoraList.appendChild(row);
+        });
+    }
+    renderLoraStack();
+
+    const addLoraRow = document.createElement('div');
+    addLoraRow.className = 'video-row';
+    const addLoraBtn = document.createElement('button');
+    addLoraBtn.className = 'video-btn';
+    addLoraBtn.textContent = getLang().video_add_lora || '+ Add LoRA';
+    addLoraBtn.addEventListener('click', () => { loraStack.push({ name: '', strength: 1.0, fromPosition: false }); renderLoraStack(); });
+    addLoraRow.appendChild(addLoraBtn);
+    extraLoraWrap.appendChild(addLoraRow);
+
+    // Picking a Position injects its LoRA stack (tagged fromPosition), replacing
+    // any previously position-injected LoRAs but keeping your manual ones.
     positionRow._onSelect = (entry) => {
-        if (!entry || !entry.lora) return;
-        if (!Array.from(elSel.options).some(o => o.value === entry.lora)) {
-            const o = document.createElement('option');
-            o.value = entry.lora; o.textContent = entry.lora;
-            elSel.appendChild(o);
+        loraStack = loraStack.filter(l => !l.fromPosition);
+        const posLoras = entry && Array.isArray(entry.loras) ? entry.loras : [];
+        for (const pl of posLoras) {
+            if (pl && pl.name) loraStack.push({ name: pl.name, strength: (typeof pl.strength === 'number') ? pl.strength : 1.0, fromPosition: true });
         }
-        elSel.value = entry.lora;
-        globalThis.globalSettings.video_extra_lora = entry.lora;
-        if (typeof entry.strength === 'number') {
-            elStrength.value = entry.strength;
-            globalThis.globalSettings.video_extra_lora_strength = entry.strength;
-        }
+        renderLoraStack();
     };
 
     const loadModelsRow = document.createElement('div');
@@ -346,15 +395,68 @@ export function setupVideoTab(containerId) {
         rebuildOptions(clipField._input, res.clip, globalThis.globalSettings.video_clip_name);
         rebuildOptions(vaeField._input, res.vae, globalThis.globalSettings.video_vae_name);
         rebuildOptions(loraField._input, res.lora, globalThis.globalSettings.video_lora_name);
-        rebuildOptions(elSel, res.lora, globalThis.globalSettings.video_extra_lora);
         loraList = res.lora || [];
+        renderLoraStack();   // repopulate the stack's LoRA dropdowns
         modelsStatus.textContent = (getLang().video_models_loaded || '{0} models, {1} loras')
             .replace('{0}', res.unet.length).replace('{1}', res.lora.length);
     }
     loadModelsBtn.addEventListener('click', loadModels);
 
-    for (const r of [loadModelsRow, modelField, modelLowField, clipField, vaeField, loraField, extraLoraRow]) modelsWrap.appendChild(r);
+    // Bake chosen model files into a workflow graph (high-noise loader first,
+    // low-noise second, by filename), mirroring the main-process patcher.
+    function applyModelDefaults(graph, picks) {
+        const isUnet = (n) => /unetloader|checkpointloader/i.test(n.class_type || '');
+        const setModel = (n, name) => {
+            if (!name) return;
+            if ('unet_name' in n.inputs) n.inputs.unet_name = name;
+            if ('ckpt_name' in n.inputs) n.inputs.ckpt_name = name;
+        };
+        const unets = Object.values(graph).filter(n => n && n.inputs && isUnet(n));
+        const rank = (n) => {
+            const s = String(n.inputs.unet_name || n.inputs.ckpt_name || '').toLowerCase();
+            return s.includes('high') ? 0 : s.includes('low') ? 1 : 0.5;
+        };
+        unets.sort((a, b) => rank(a) - rank(b));
+        if (unets.length === 1) setModel(unets[0], picks.high);
+        else if (unets.length >= 2) { setModel(unets[0], picks.high); setModel(unets[1], picks.low); }
+        for (const n of Object.values(graph)) {
+            if (!n || !n.inputs) continue;
+            const ct = String(n.class_type || '').toLowerCase();
+            if (picks.clip && ct.includes('cliploader') && !ct.includes('vision') && 'clip_name' in n.inputs) n.inputs.clip_name = picks.clip;
+            if (picks.vae && ct.includes('vaeloader') && 'vae_name' in n.inputs) n.inputs.vae_name = picks.vae;
+        }
+    }
+
+    // "Set as workflow default": bake the current model dropdown picks into the
+    // selected workflow JSON so they persist as that template's defaults.
+    const setDefaultBtn = document.createElement('button');
+    setDefaultBtn.className = 'video-btn';
+    setDefaultBtn.textContent = getLang().video_set_default || '★ Set current models as workflow default';
+    const setDefaultStatus = document.createElement('span');
+    setDefaultStatus.className = 'video-status';
+    setDefaultBtn.addEventListener('click', async () => {
+        if (!wfSelect.value) { setDefaultStatus.textContent = getLang().video_no_workflow || 'Pick a workflow first.'; return; }
+        const graph = await api.get(wfSelect.value).catch(() => null);
+        if (!graph) { setDefaultStatus.textContent = getLang().video_set_default_fail || 'Could not load workflow.'; return; }
+        applyModelDefaults(graph, {
+            high: modelField._input.value.trim(),
+            low: modelLowField._input.value.trim(),
+            clip: clipField._input.value.trim(),
+            vae: vaeField._input.value.trim()
+        });
+        const saved = await api.save(wfSelect.value, graph).catch(() => null);
+        setDefaultStatus.textContent = saved
+            ? (getLang().video_set_default_ok || 'Saved as workflow default ✓')
+            : (getLang().video_set_default_fail || 'Save failed.');
+    });
+    const setDefaultRow = document.createElement('div');
+    setDefaultRow.className = 'video-row';
+    setDefaultRow.appendChild(setDefaultBtn);
+    setDefaultRow.appendChild(setDefaultStatus);
+
+    for (const r of [loadModelsRow, modelField, modelLowField, clipField, vaeField, loraField, setDefaultRow]) modelsWrap.appendChild(r);
     container.appendChild(modelsWrap);
+    container.appendChild(extraLoraWrap);
 
     // ---- Download models into ComfyUI's folder ----
     const dlWrap = document.createElement('div');
@@ -608,8 +710,7 @@ export function setupVideoTab(containerId) {
             clipName: clipField._input.value.trim() || undefined,
             vaeName: vaeField._input.value.trim() || undefined,
             loraName: loraField._input.value.trim() || undefined,
-            extraLoraName: elSel.value.trim() || undefined,
-            extraLoraStrength: Number(elStrength.value) || 1.0,
+            extraLoras: loraStack.filter(l => l.name).map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0 })),
             addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000')
         };
 

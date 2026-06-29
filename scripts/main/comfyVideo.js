@@ -144,24 +144,34 @@ function patchGraph(graphIn, params, uploadedName) {
         }
     }
 
-    // Extra LoRA: stack an additional LoRA (e.g. an NSFW/motion LoRA) onto every
-    // model path by inserting a LoraLoaderModelOnly before each sampler. This
-    // covers WAN 2.2's two models without editing the workflow.
+    // Extra LoRA stack: chain one or more LoRAs (e.g. NSFW/motion LoRAs) onto
+    // every model path by inserting LoraLoaderModelOnly nodes before each sampler.
+    // This covers WAN 2.2's two models without editing the workflow. Accepts an
+    // array (extraLoras) and, for back-compat, a single extraLoraName.
+    const extraLoras = Array.isArray(params.extraLoras)
+        ? params.extraLoras.filter(l => l && l.name).map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0 }))
+        : [];
     if (params.extraLoraName) {
-        const strength = (typeof params.extraLoraStrength === 'number') ? params.extraLoraStrength : 1.0;
+        extraLoras.push({ name: params.extraLoraName, strength: (typeof params.extraLoraStrength === 'number') ? params.extraLoraStrength : 1.0 });
+    }
+    if (extraLoras.length) {
         let targets = entries.filter(([, n]) => ctOf(n).includes('modelsamplingsd3') && Array.isArray(n.inputs?.model));
         if (targets.length === 0) {
             targets = entries.filter(([, n]) => ctOf(n).includes('ksampler') && Array.isArray(n.inputs?.model));
         }
-        let i = 0;
+        let pathIdx = 0;
         for (const [, t] of targets) {
-            const oldModel = t.inputs.model;
-            const newId = `saa_extra_lora_${i++}`;
-            g[newId] = {
-                class_type: 'LoraLoaderModelOnly',
-                inputs: { model: oldModel, lora_name: params.extraLoraName, strength_model: strength }
-            };
-            t.inputs.model = [newId, 0];
+            let cur = t.inputs.model;   // chain: model -> lora1 -> lora2 -> ... -> sampler
+            extraLoras.forEach((l, li) => {
+                const newId = `saa_extra_lora_${pathIdx}_${li}`;
+                g[newId] = {
+                    class_type: 'LoraLoaderModelOnly',
+                    inputs: { model: cur, lora_name: l.name, strength_model: l.strength }
+                };
+                cur = [newId, 0];
+            });
+            t.inputs.model = cur;
+            pathIdx++;
         }
     }
 

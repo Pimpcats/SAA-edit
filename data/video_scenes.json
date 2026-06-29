@@ -15,6 +15,7 @@
         "waving at the camera"
     ],
     "position": [
+        { "label": "General sex (any position)", "prompt": "explicit sex, penetration, steady rhythmic motion, continuous movement", "lora": "", "strength": 0.9 },
         { "label": "Riding (cowgirl)", "prompt": "riding on top, cowgirl position, hips moving up and down in a steady rhythm, breasts bouncing", "lora": "", "strength": 0.9 },
         { "label": "Reverse cowgirl", "prompt": "reverse cowgirl, riding from behind, hips rocking up and down, back arched", "lora": "", "strength": 0.9 },
         { "label": "Missionary", "prompt": "missionary position, steady thrusting, legs spread, rhythmic motion", "lora": "", "strength": 0.9 },
