@@ -310,6 +310,49 @@ async function getComfyModels(addr) {
     }
 }
 
+// Stream-download a model file into ComfyUI's models folder, reporting progress.
+async function downloadModel(params, onProgress) {
+    try {
+        const { url, modelsDir, subdir } = params;
+        if (!url) return { ok: false, error: 'no url' };
+        if (!modelsDir) return { ok: false, error: 'set the ComfyUI models folder first' };
+        const dir = path.join(modelsDir, subdir || '');
+        fs.mkdirSync(dir, { recursive: true });
+        const name = params.filename
+            || decodeURIComponent((url.split('?')[0].split('/').pop() || 'model.safetensors'));
+        const dest = path.join(dir, name);
+        if (fs.existsSync(dest)) return { ok: true, already: true, path: dest, name };
+
+        const resp = await fetch(url, { redirect: 'follow' });
+        if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`);
+        const total = Number(resp.headers.get('content-length') || 0);
+        const tmp = dest + '.part';
+        const ws = fs.createWriteStream(tmp);
+        let received = 0;
+        const reader = resp.body.getReader();
+        for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            ws.write(Buffer.from(value));
+            received += value.length;
+            onProgress?.({ received, total, name });
+        }
+        await new Promise((res, rej) => { ws.end(); ws.on('finish', res); ws.on('error', rej); });
+        fs.renameSync(tmp, dest);
+        return { ok: true, path: dest, name };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
+function loadCatalog() {
+    try {
+        return JSON.parse(fs.readFileSync(path.join(appPath, 'data', 'video_models_catalog.json'), 'utf8'));
+    } catch {
+        return [];
+    }
+}
+
 // Quick reachability check: confirm something answers and that it's ComfyUI.
 async function pingComfy(addr) {
     try {
@@ -327,6 +370,9 @@ async function pingComfy(addr) {
 export function setupComfyVideo() {
     ipcMain.handle('comfy-video-ping', async (event, addr) => pingComfy(addr));
     ipcMain.handle('comfy-video-models', async (event, addr) => getComfyModels(addr));
+    ipcMain.handle('comfy-video-catalog', async () => loadCatalog());
+    ipcMain.handle('comfy-video-download-model', async (event, params) =>
+        downloadModel(params, (p) => { try { event.sender.send('comfy-video-dl-progress', p); } catch { /* ignore */ } }));
     ipcMain.handle('comfy-video-list', async () => listWorkflows());
     ipcMain.handle('comfy-video-get', async (event, name) => loadWorkflowGraph(name));
     ipcMain.handle('comfy-video-save', async (event, name, graph) => saveWorkflow(name, graph));

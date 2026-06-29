@@ -1,0 +1,38 @@
+[
+  {
+    "label": "WAN 2.2 I2V 14B — high noise (fp8)",
+    "subdir": "diffusion_models",
+    "filename": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors"
+  },
+  {
+    "label": "WAN 2.2 I2V 14B — low noise (fp8)",
+    "subdir": "diffusion_models",
+    "filename": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors"
+  },
+  {
+    "label": "WAN 2.1 I2V 14B 480p (fp8) — single-model (for bundled template)",
+    "subdir": "diffusion_models",
+    "filename": "wan2.1_i2v_480p_14B_fp8_scaled.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_scaled.safetensors"
+  },
+  {
+    "label": "Text encoder — umt5_xxl (fp8)",
+    "subdir": "text_encoders",
+    "filename": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+  },
+  {
+    "label": "VAE — wan_2.1_vae",
+    "subdir": "vae",
+    "filename": "wan_2.1_vae.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"
+  },
+  {
+    "label": "CLIP vision — clip_vision_h (WAN 2.1 I2V)",
+    "subdir": "clip_vision",
+    "filename": "clip_vision_h.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
+  }
+]

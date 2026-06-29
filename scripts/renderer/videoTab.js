@@ -296,6 +296,142 @@ export function setupVideoTab(containerId) {
     for (const r of [loadModelsRow, modelField, clipField, vaeField, loraField]) modelsWrap.appendChild(r);
     container.appendChild(modelsWrap);
 
+    // ---- Download models into ComfyUI's folder ----
+    const dlWrap = document.createElement('div');
+    dlWrap.className = 'video-models';
+    const dlTitle = document.createElement('div');
+    dlTitle.className = 'video-outbox-label';
+    dlTitle.textContent = getLang().video_dl_title || 'Download a model into ComfyUI';
+    dlWrap.appendChild(dlTitle);
+
+    // ComfyUI models folder
+    const dirRow = document.createElement('div');
+    dirRow.className = 'video-row';
+    const dirLabel = document.createElement('span');
+    dirLabel.className = 'video-label';
+    dirLabel.textContent = getLang().video_models_dir || 'ComfyUI models folder';
+    const dirInput = document.createElement('input');
+    dirInput.type = 'text';
+    dirInput.className = 'video-text';
+    dirInput.placeholder = '…/ComfyUI/models';
+    dirInput.value = globalThis.globalSettings.comfy_models_dir || '';
+    dirInput.addEventListener('change', () => { globalThis.globalSettings.comfy_models_dir = dirInput.value.trim(); });
+    const browseDirBtn = document.createElement('button');
+    browseDirBtn.className = 'video-btn';
+    browseDirBtn.textContent = getLang().video_browse || 'Browse…';
+    browseDirBtn.addEventListener('click', async () => {
+        if (!globalThis.api?.pickSaveFolder) return;
+        const res = await globalThis.api.pickSaveFolder().catch(() => null);
+        if (res?.ok && res.path) { dirInput.value = res.path; globalThis.globalSettings.comfy_models_dir = res.path; }
+    });
+    dirRow.appendChild(dirLabel);
+    dirRow.appendChild(dirInput);
+    if (!globalThis.inBrowser && globalThis.api?.pickSaveFolder) dirRow.appendChild(browseDirBtn);
+    dlWrap.appendChild(dirRow);
+
+    // Catalog picker + URL + subfolder + download
+    const catRow = document.createElement('div');
+    catRow.className = 'video-row';
+    const catLabel = document.createElement('span');
+    catLabel.className = 'video-label';
+    catLabel.textContent = getLang().video_dl_pick || 'Pick a model';
+    const catSel = document.createElement('select');
+    catSel.className = 'video-select';
+    catRow.appendChild(catLabel);
+    catRow.appendChild(catSel);
+    dlWrap.appendChild(catRow);
+
+    const urlRow = document.createElement('div');
+    urlRow.className = 'video-row';
+    const urlLabel = document.createElement('span');
+    urlLabel.className = 'video-label';
+    urlLabel.textContent = getLang().video_dl_url || 'or URL';
+    const urlInput = document.createElement('input');
+    urlInput.type = 'text';
+    urlInput.className = 'video-text';
+    urlInput.placeholder = 'https://huggingface.co/.../model.safetensors';
+    const subSel = document.createElement('select');
+    subSel.className = 'video-select';
+    subSel.style.maxWidth = '150px';
+    for (const s of ['diffusion_models', 'text_encoders', 'vae', 'clip_vision', 'loras']) {
+        const o = document.createElement('option'); o.value = s; o.textContent = s; subSel.appendChild(o);
+    }
+    urlRow.appendChild(urlLabel);
+    urlRow.appendChild(urlInput);
+    urlRow.appendChild(subSel);
+    dlWrap.appendChild(urlRow);
+
+    let catalog = [];
+    catSel.addEventListener('change', () => {
+        const item = catalog[Number(catSel.value)];
+        if (item) { urlInput.value = item.url; subSel.value = item.subdir; }
+    });
+
+    const dlBtnRow = document.createElement('div');
+    dlBtnRow.className = 'video-run-row';
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'video-btn';
+    dlBtn.textContent = getLang().video_dl_btn || 'Download';
+    const dlStatus = document.createElement('span');
+    dlStatus.className = 'video-status';
+    const dlProg = document.createElement('div');
+    dlProg.className = 'video-progress';
+    dlProg.style.display = 'none';
+    const dlProgBar = document.createElement('div');
+    dlProgBar.className = 'video-progress-bar';
+    dlProg.appendChild(dlProgBar);
+    dlBtnRow.appendChild(dlBtn);
+    dlBtnRow.appendChild(dlStatus);
+    dlWrap.appendChild(dlBtnRow);
+    dlWrap.appendChild(dlProg);
+
+    if (globalThis.api?.onComfyVideoDlProgress) {
+        globalThis.api.onComfyVideoDlProgress((p) => {
+            if (!p || !p.total) { dlStatus.textContent = `${Math.round((p?.received || 0) / 1048576)} MB`; return; }
+            dlProg.style.display = 'block';
+            dlProgBar.style.width = `${(p.received / p.total) * 100}%`;
+            dlStatus.textContent = `${Math.round(p.received / 1048576)} / ${Math.round(p.total / 1048576)} MB`;
+        });
+    }
+
+    dlBtn.addEventListener('click', async () => {
+        const url = urlInput.value.trim();
+        const modelsDir = dirInput.value.trim() || globalThis.globalSettings.comfy_models_dir;
+        if (!url) { dlStatus.textContent = getLang().video_dl_no_url || 'Pick a model or paste a URL.'; return; }
+        if (!modelsDir) { dlStatus.textContent = getLang().video_dl_no_dir || 'Set the ComfyUI models folder first.'; return; }
+        dlBtn.disabled = true;
+        dlProg.style.display = 'block';
+        dlProgBar.style.width = '0%';
+        dlStatus.textContent = getLang().video_dl_start || 'Downloading…';
+        const res = globalThis.api?.comfyVideoDownloadModel
+            ? await globalThis.api.comfyVideoDownloadModel({ url, modelsDir, subdir: subSel.value }).catch(e => ({ ok: false, error: e.message }))
+            : { ok: false, error: 'desktop only' };
+        dlBtn.disabled = false;
+        dlProg.style.display = 'none';
+        if (res && res.ok) {
+            dlStatus.textContent = res.already
+                ? (getLang().video_dl_have || 'Already downloaded ✓')
+                : (getLang().video_dl_done || 'Downloaded ✓ — reloading models');
+            loadModels();   // refresh dropdowns so the new file is selectable
+        } else {
+            dlStatus.textContent = (getLang().video_dl_failed || 'Download failed: ') + (res?.error || '?');
+        }
+    });
+
+    container.appendChild(dlWrap);
+
+    // Load the download catalog.
+    if (globalThis.api?.comfyVideoCatalog) {
+        globalThis.api.comfyVideoCatalog().then((items) => {
+            catalog = items || [];
+            catSel.innerHTML = '';
+            const def = document.createElement('option'); def.value = ''; def.textContent = '(choose…)'; catSel.appendChild(def);
+            catalog.forEach((it, i) => {
+                const o = document.createElement('option'); o.value = String(i); o.textContent = it.label; catSel.appendChild(o);
+            });
+        }).catch(() => {});
+    }
+
     // Run + status
     const runRow = document.createElement('div');
     runRow.className = 'video-run-row';
