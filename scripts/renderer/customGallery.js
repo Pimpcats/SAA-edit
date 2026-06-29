@@ -880,6 +880,32 @@ export function setupGallery(containerId) {
             });
             menuEl.appendChild(saveItem);
 
+            // Send this image into the Video (ComfyUI) tab as the input frame.
+            if (globalThis.videoTab?.setInputImage) {
+                const videoItem = document.createElement('div');
+                videoItem.style.cssText = 'padding:8px 12px;cursor:pointer;border-radius:6px;white-space:nowrap;';
+                videoItem.textContent = LANG.gallery_send_to_video || 'Send to Video';
+                videoItem.addEventListener('mouseover', () => { videoItem.style.background = 'rgba(255,255,255,0.12)'; });
+                videoItem.addEventListener('mouseout', () => { videoItem.style.background = 'transparent'; });
+                videoItem.addEventListener('click', () => {
+                    close();
+                    let idx = currentIndex;
+                    if (img.classList.contains('cg-preview-image') && img.dataset.domIndex !== undefined) {
+                        idx = images.length - 1 - Number.parseInt(img.dataset.domIndex);
+                    }
+                    let src = images[idx];
+                    if (!src) return;
+                    if (!src.startsWith('data:')) src = 'data:image/png;base64,' + src;
+                    globalThis.videoTab.setInputImage(src);
+                    // Expand the Video panel so the input shows.
+                    document.querySelector('.video-tab-container')?.classList.remove('collapsed');
+                    document.querySelector('.video-tab-main')?.classList.remove('collapsed');
+                    document.getElementById('video-tab-toggle')?.classList.remove('collapsed');
+                    document.querySelector('.video-tab-container')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+                menuEl.appendChild(videoItem);
+            }
+
             document.body.appendChild(menuEl);
             setTimeout(() => document.addEventListener('mousedown', onDoc, true), 0);
         }, true);
