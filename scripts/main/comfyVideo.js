@@ -128,6 +128,27 @@ function patchGraph(graphIn, params, uploadedName) {
         }
     }
 
+    // Extra LoRA: stack an additional LoRA (e.g. an NSFW/motion LoRA) onto every
+    // model path by inserting a LoraLoaderModelOnly before each sampler. This
+    // covers WAN 2.2's two models without editing the workflow.
+    if (params.extraLoraName) {
+        const strength = (typeof params.extraLoraStrength === 'number') ? params.extraLoraStrength : 1.0;
+        let targets = entries.filter(([, n]) => ctOf(n).includes('modelsamplingsd3') && Array.isArray(n.inputs?.model));
+        if (targets.length === 0) {
+            targets = entries.filter(([, n]) => ctOf(n).includes('ksampler') && Array.isArray(n.inputs?.model));
+        }
+        let i = 0;
+        for (const [, t] of targets) {
+            const oldModel = t.inputs.model;
+            const newId = `saa_extra_lora_${i++}`;
+            g[newId] = {
+                class_type: 'LoraLoaderModelOnly',
+                inputs: { model: oldModel, lora_name: params.extraLoraName, strength_model: strength }
+            };
+            t.inputs.model = [newId, 0];
+        }
+    }
+
     // Samplers (WAN 2.2 may have two) and video output nodes.
     for (const [, n] of entries) {
         const ct = String(n.class_type || '').toLowerCase();

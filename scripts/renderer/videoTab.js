@@ -267,6 +267,25 @@ export function setupVideoTab(containerId) {
     const vaeField = selectField(getLang().video_vae || 'VAE', 'video_vae_name');
     const loraField = selectField(getLang().video_lora || 'Speed LoRA', 'video_lora_name');
 
+    // Extra LoRA (e.g. an NSFW / motion LoRA) — stacked onto every model path.
+    const extraLoraRow = document.createElement('div');
+    extraLoraRow.className = 'video-row';
+    const elLabel = document.createElement('span');
+    elLabel.className = 'video-label';
+    elLabel.textContent = getLang().video_extra_lora || 'Extra LoRA (NSFW/motion)';
+    const elSel = document.createElement('select');
+    elSel.className = 'video-select';
+    rebuildOptions(elSel, [], globalThis.globalSettings.video_extra_lora || '');
+    elSel.addEventListener('change', () => { globalThis.globalSettings.video_extra_lora = elSel.value; });
+    const elStrength = document.createElement('input');
+    elStrength.type = 'number'; elStrength.step = '0.05'; elStrength.min = '0'; elStrength.max = '2';
+    elStrength.style.maxWidth = '70px'; elStrength.title = getLang().video_extra_lora_strength || 'strength';
+    elStrength.value = globalThis.globalSettings.video_extra_lora_strength ?? 1.0;
+    elStrength.addEventListener('change', () => { globalThis.globalSettings.video_extra_lora_strength = Number(elStrength.value); });
+    extraLoraRow.appendChild(elLabel);
+    extraLoraRow.appendChild(elSel);
+    extraLoraRow.appendChild(elStrength);
+
     const loadModelsRow = document.createElement('div');
     loadModelsRow.className = 'video-row';
     const loadModelsBtn = document.createElement('button');
@@ -288,12 +307,13 @@ export function setupVideoTab(containerId) {
         rebuildOptions(clipField._input, res.clip, globalThis.globalSettings.video_clip_name);
         rebuildOptions(vaeField._input, res.vae, globalThis.globalSettings.video_vae_name);
         rebuildOptions(loraField._input, res.lora, globalThis.globalSettings.video_lora_name);
+        rebuildOptions(elSel, res.lora, globalThis.globalSettings.video_extra_lora);
         modelsStatus.textContent = (getLang().video_models_loaded || '{0} models, {1} loras')
             .replace('{0}', res.unet.length).replace('{1}', res.lora.length);
     }
     loadModelsBtn.addEventListener('click', loadModels);
 
-    for (const r of [loadModelsRow, modelField, clipField, vaeField, loraField]) modelsWrap.appendChild(r);
+    for (const r of [loadModelsRow, modelField, clipField, vaeField, loraField, extraLoraRow]) modelsWrap.appendChild(r);
     container.appendChild(modelsWrap);
 
     // ---- Download models into ComfyUI's folder ----
@@ -540,6 +560,8 @@ export function setupVideoTab(containerId) {
             clipName: clipField._input.value.trim() || undefined,
             vaeName: vaeField._input.value.trim() || undefined,
             loraName: loraField._input.value.trim() || undefined,
+            extraLoraName: elSel.value.trim() || undefined,
+            extraLoraStrength: Number(elStrength.value) || 1.0,
             addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000')
         };
 

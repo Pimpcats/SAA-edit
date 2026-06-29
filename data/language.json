@@ -69,6 +69,8 @@
         "video_clip": "Text encoder (CLIP)",
         "video_vae": "VAE",
         "video_lora": "Speed LoRA",
+        "video_extra_lora": "Extra LoRA (NSFW/motion)",
+        "video_extra_lora_strength": "Extra LoRA strength",
         "video_run": "Animate ▶",
         "video_running": "Generating… {0}s",
         "video_done": "Done in {0}s",
