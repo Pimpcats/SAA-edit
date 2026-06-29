@@ -66,6 +66,7 @@
         "video_bad_json": "Invalid JSON.",
         "video_no_workflow": "(none — import your API JSON)",
         "video_model": "Diffusion model",
+        "video_model_low": "Diffusion model (low noise)",
         "video_clip": "Text encoder (CLIP)",
         "video_vae": "VAE",
         "video_lora": "Speed LoRA",

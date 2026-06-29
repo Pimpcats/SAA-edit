@@ -102,20 +102,36 @@ function patchGraph(graphIn, params, uploadedName) {
         if (negRef && g[negRef]?.inputs && 'text' in g[negRef].inputs && params.negative !== undefined) g[negRef].inputs.text = params.negative;
     }
 
-    // Model / clip / vae / speed-LoRA loaders — let the user point a SINGLE-model
-    // template at their downloaded files without editing JSON. For multi-model
-    // workflows (e.g. WAN 2.2 high+low), the single dropdown would wrongly set
-    // both loaders to the same file, so skip it and keep the template's values.
+    // Model / clip / vae / speed-LoRA loaders — let the user point a template at
+    // their downloaded files without editing JSON. Single-model workflows use the
+    // "Diffusion model" dropdown; two-model WAN 2.2 workflows (high+low) also use
+    // the "low-noise model" dropdown, ordered so the high-noise loader is set from
+    // modelName and the low-noise loader from modelNameLow.
     const ctOf = (n) => String(n.class_type || '').toLowerCase();
-    const unetCount = entries.filter(([, n]) => ctOf(n).includes('unetloader') || ctOf(n).includes('checkpointloader')).length;
+    const isUnet = (n) => ctOf(n).includes('unetloader') || ctOf(n).includes('checkpointloader');
+    const setModel = (n, name) => {
+        if ('unet_name' in n.inputs) n.inputs.unet_name = name;
+        if ('ckpt_name' in n.inputs) n.inputs.ckpt_name = name;
+    };
+    const unetEntries = entries.filter(([, n]) => isUnet(n) && n.inputs);
+    // Order the diffusion loaders so high-noise comes first, low-noise second.
+    const rank = (n) => {
+        const name = String(n.inputs.unet_name || n.inputs.ckpt_name || '').toLowerCase();
+        if (name.includes('high')) return 0;
+        if (name.includes('low')) return 1;
+        return 0.5;
+    };
+    const orderedUnets = unetEntries.slice().sort((a, b) => rank(a[1]) - rank(b[1]));
+    if (orderedUnets.length === 1) {
+        if (params.modelName) setModel(orderedUnets[0][1], params.modelName);
+    } else if (orderedUnets.length >= 2) {
+        if (params.modelName) setModel(orderedUnets[0][1], params.modelName);
+        if (params.modelNameLow) setModel(orderedUnets[1][1], params.modelNameLow);
+    }
     const loraCount = entries.filter(([, n]) => ctOf(n).includes('lora')).length;
     for (const [, n] of entries) {
         if (!n.inputs) continue;
         const ct = ctOf(n);
-        if (params.modelName && unetCount === 1 && (ct.includes('unetloader') || ct.includes('checkpointloader'))) {
-            if ('unet_name' in n.inputs) n.inputs.unet_name = params.modelName;
-            if ('ckpt_name' in n.inputs) n.inputs.ckpt_name = params.modelName;
-        }
         // CLIPLoader (text encoder) but NOT CLIPVisionLoader.
         if (params.clipName && ct.includes('cliploader') && !ct.includes('vision')) {
             if ('clip_name' in n.inputs) n.inputs.clip_name = params.clipName;

@@ -263,6 +263,9 @@ export function setupVideoTab(containerId) {
         return row;
     }
     const modelField = selectField(getLang().video_model || 'Diffusion model', 'video_model_name');
+    // Second diffusion model for two-model WAN 2.2 (high + low noise). Left on
+    // "(keep workflow default)" for single-model workflows.
+    const modelLowField = selectField(getLang().video_model_low || 'Diffusion model (low noise)', 'video_model_name_low');
     const clipField = selectField(getLang().video_clip || 'Text encoder (CLIP)', 'video_clip_name');
     const vaeField = selectField(getLang().video_vae || 'VAE', 'video_vae_name');
     const loraField = selectField(getLang().video_lora || 'Speed LoRA', 'video_lora_name');
@@ -304,6 +307,7 @@ export function setupVideoTab(containerId) {
             : { ok: false, error: 'desktop only' };
         if (!res || !res.ok) { modelsStatus.textContent = (getLang().video_models_failed || 'Failed: ') + (res?.error || '?'); return; }
         rebuildOptions(modelField._input, res.unet, globalThis.globalSettings.video_model_name);
+        rebuildOptions(modelLowField._input, res.unet, globalThis.globalSettings.video_model_name_low);
         rebuildOptions(clipField._input, res.clip, globalThis.globalSettings.video_clip_name);
         rebuildOptions(vaeField._input, res.vae, globalThis.globalSettings.video_vae_name);
         rebuildOptions(loraField._input, res.lora, globalThis.globalSettings.video_lora_name);
@@ -313,7 +317,7 @@ export function setupVideoTab(containerId) {
     }
     loadModelsBtn.addEventListener('click', loadModels);
 
-    for (const r of [loadModelsRow, modelField, clipField, vaeField, loraField, extraLoraRow]) modelsWrap.appendChild(r);
+    for (const r of [loadModelsRow, modelField, modelLowField, clipField, vaeField, loraField, extraLoraRow]) modelsWrap.appendChild(r);
     container.appendChild(modelsWrap);
 
     // ---- Download models into ComfyUI's folder ----
@@ -557,6 +561,7 @@ export function setupVideoTab(containerId) {
             cfg: Number(cfgNum._input.value),
             seed,
             modelName: modelField._input.value.trim() || undefined,
+            modelNameLow: modelLowField._input.value.trim() || undefined,
             clipName: clipField._input.value.trim() || undefined,
             vaeName: vaeField._input.value.trim() || undefined,
             loraName: loraField._input.value.trim() || undefined,

@@ -110,6 +110,7 @@ const defaultSettings = {
     "video_comfy_addr": "127.0.0.1:8000",
     "comfy_models_dir": "",
     "video_model_name": "",
+    "video_model_name_low": "",
     "video_clip_name": "",
     "video_vae_name": "",
     "video_lora_name": "",
