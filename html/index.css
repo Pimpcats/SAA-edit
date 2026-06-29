@@ -104,6 +104,10 @@ html, body {
 .video-run:hover { background: #4a8be5; }
 .video-run:disabled { opacity: 0.6; cursor: default; }
 .video-status { font-size: 12px; opacity: 0.85; }
+.video-test-status { font-size: 12px; opacity: 0.85; }
+.video-test-status.ok { color: #1ce088; }
+.video-test-status.warn { color: #f1c40f; }
+.video-test-status.err { color: #e74c3c; }
 .video-result { display: flex; flex-direction: column; gap: 4px; }
 .video-out { max-width: 100%; border-radius: 8px; }
 .video-saved-path { font-size: 11px; opacity: 0.6; word-break: break-all; }

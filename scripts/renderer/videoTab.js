@@ -176,8 +176,36 @@ export function setupVideoTab(containerId) {
     addrInput.placeholder = '127.0.0.1:8188';
     addrInput.value = globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8188';
     addrInput.addEventListener('change', () => { globalThis.globalSettings.video_comfy_addr = addrInput.value.trim(); });
+    const testBtn = document.createElement('button');
+    testBtn.className = 'video-btn';
+    testBtn.textContent = getLang().video_test || 'Test';
+    const testStatus = document.createElement('span');
+    testStatus.className = 'video-test-status';
+    testStatus.textContent = '●';
+    testBtn.addEventListener('click', async () => {
+        const addr = addrInput.value.trim() || '127.0.0.1:8188';
+        globalThis.globalSettings.video_comfy_addr = addr;
+        testStatus.className = 'video-test-status';
+        testStatus.textContent = getLang().video_testing || 'Testing…';
+        const res = globalThis.api?.comfyVideoPing
+            ? await globalThis.api.comfyVideoPing(addr).catch(err => ({ ok: false, error: err.message }))
+            : { ok: false, error: 'desktop only' };
+        if (res && res.ok && res.isComfy) {
+            testStatus.className = 'video-test-status ok';
+            testStatus.textContent = getLang().video_connected || 'ComfyUI connected ✓';
+        } else if (res && res.ok) {
+            testStatus.className = 'video-test-status warn';
+            testStatus.textContent = getLang().video_not_comfy || 'Reachable, but not ComfyUI ✗';
+        } else {
+            testStatus.className = 'video-test-status err';
+            testStatus.textContent = (getLang().video_unreachable || 'Unreachable ✗')
+                + (res?.status ? ` (${res.status})` : (res?.error ? ` (${res.error})` : ''));
+        }
+    });
     addrRow.appendChild(addrLabel);
     addrRow.appendChild(addrInput);
+    addrRow.appendChild(testBtn);
+    addrRow.appendChild(testStatus);
     container.appendChild(addrRow);
 
     // Workflow + model files

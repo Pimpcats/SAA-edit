@@ -62,7 +62,12 @@ async function uploadImage(addr, dataUrl) {
     fd.append('image', new Blob([buf], { type: `image/${m[1]}` }), `saa_input.${ext}`);
     fd.append('overwrite', 'true');
     const resp = await fetch(`${comfyBase(addr)}/upload/image`, { method: 'POST', body: fd });
-    if (!resp.ok) throw new Error(`upload HTTP ${resp.status}`);
+    if (!resp.ok) {
+        const hint = resp.status === 404
+            ? ' — this address is not ComfyUI (A1111 has no /upload/image). Set the ComfyUI address (default 127.0.0.1:8188).'
+            : '';
+        throw new Error(`upload HTTP ${resp.status}${hint}`);
+    }
     const j = await resp.json();
     return { name: j.name, subfolder: j.subfolder || '', type: j.type || 'input' };
 }
@@ -264,7 +269,22 @@ async function runVideo(params, onProgress) {
     }
 }
 
+// Quick reachability check: confirm something answers and that it's ComfyUI.
+async function pingComfy(addr) {
+    try {
+        if (!addr) return { ok: false, error: 'no address' };
+        const resp = await fetch(`${comfyBase(addr)}/system_stats`, { method: 'GET' });
+        if (!resp.ok) return { ok: false, status: resp.status, isComfy: false };
+        const j = await resp.json().catch(() => null);
+        const isComfy = !!(j && (j.system || j.devices));
+        return { ok: true, status: resp.status, isComfy };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
 export function setupComfyVideo() {
+    ipcMain.handle('comfy-video-ping', async (event, addr) => pingComfy(addr));
     ipcMain.handle('comfy-video-list', async () => listWorkflows());
     ipcMain.handle('comfy-video-get', async (event, name) => loadWorkflowGraph(name));
     ipcMain.handle('comfy-video-save', async (event, name, graph) => saveWorkflow(name, graph));
