@@ -29,7 +29,8 @@ export function setupVideoTab(containerId) {
         save: (n, g) => (globalThis.api?.comfyVideoSave ? globalThis.api.comfyVideoSave(n, g) : Promise.resolve(null)),
         saveScenes: (s) => (globalThis.api?.comfyVideoSaveScenes ? globalThis.api.comfyVideoSaveScenes(s) : Promise.resolve(null)),
         run: (p) => (globalThis.api?.comfyVideoRun ? globalThis.api.comfyVideoRun(p) : Promise.resolve({ ok: false, error: 'desktop only' })),
-        preflight: (p) => (globalThis.api?.comfyVideoPreflight ? globalThis.api.comfyVideoPreflight(p) : Promise.resolve(null))
+        preflight: (p) => (globalThis.api?.comfyVideoPreflight ? globalThis.api.comfyVideoPreflight(p) : Promise.resolve(null)),
+        interrupt: (a) => (globalThis.api?.comfyVideoInterrupt ? globalThis.api.comfyVideoInterrupt(a) : Promise.resolve(null))
     };
 
     let scenes = DEFAULT_SCENES;
@@ -121,6 +122,7 @@ export function setupVideoTab(containerId) {
         };
     }
     function makeSelectRow(labelText, key) {
+        const settingKey = key === 'position' ? 'video_position' : key === 'motion' ? 'video_motion' : null;
         const row = document.createElement('div');
         row.className = 'video-row';
         const label = document.createElement('span');
@@ -140,10 +142,18 @@ export function setupVideoTab(containerId) {
                 o.value = String(i); o.textContent = item.label;
                 sel.appendChild(o);
             });
+            // Restore the saved selection (by label, since indexes shift).
+            if (settingKey && globalThis.globalSettings[settingKey]) {
+                const i = entries.findIndex(e => e.label === globalThis.globalSettings[settingKey]);
+                if (i >= 0) sel.value = String(i);
+            }
         };
         rebuild();
         const current = () => (sel.value === '' ? null : entries[Number(sel.value)] || null);
-        sel.addEventListener('change', () => { if (row._onSelect) row._onSelect(current()); });
+        sel.addEventListener('change', () => {
+            if (settingKey) globalThis.globalSettings[settingKey] = current()?.label || '';
+            if (row._onSelect) row._onSelect(current());
+        });
         row.appendChild(label);
         row.appendChild(sel);
         row._rebuild = rebuild;
@@ -168,6 +178,8 @@ export function setupVideoTab(containerId) {
     posPromptInput.className = 'video-text';
     posPromptInput.rows = 2;
     posPromptInput.placeholder = getLang().video_pos_prompt_ph || 'pick a position to load its prompt — editable';
+    posPromptInput.value = globalThis.globalSettings.video_pos_prompt || '';
+    posPromptInput.addEventListener('change', () => { globalThis.globalSettings.video_pos_prompt = posPromptInput.value; });
     posPromptRow.appendChild(posPromptLabel);
     posPromptRow.appendChild(posPromptInput);
     container.appendChild(posPromptRow);
@@ -206,35 +218,78 @@ export function setupVideoTab(containerId) {
     extraInput.type = 'text';
     extraInput.className = 'video-text';
     extraInput.placeholder = getLang().video_extra_ph || 'your own prompt — added to the scene/position description';
+    extraInput.value = globalThis.globalSettings.video_extra_prompt || '';
+    extraInput.addEventListener('change', () => { globalThis.globalSettings.video_extra_prompt = extraInput.value; });
     extraRow.appendChild(extraLabel);
     extraRow.appendChild(extraInput);
     container.appendChild(extraRow);
 
-    // Numeric controls (defaults tuned for ~16GB GPU, 480p, 4-step speed LoRA)
-    function num(label, value, min, max, step) {
+    // Numeric controls (defaults tuned for ~16GB GPU, 480p, 4-step speed LoRA).
+    // Each persists to a settings key so the tab reloads exactly as left off.
+    function num(label, value, min, max, step, key) {
         const row = document.createElement('div');
         row.className = 'video-num';
         const l = document.createElement('span'); l.textContent = label;
         const i = document.createElement('input');
-        i.type = 'number'; i.value = value;
+        i.type = 'number';
+        const saved = key ? globalThis.globalSettings[key] : undefined;
+        i.value = (saved !== undefined && saved !== '' && saved !== null) ? saved : value;
         if (min !== undefined) i.min = min;
         if (max !== undefined) i.max = max;
         if (step !== undefined) i.step = step;
+        if (key) i.addEventListener('change', () => { globalThis.globalSettings[key] = Number(i.value); });
         row.appendChild(l); row.appendChild(i);
         row._input = i;
         return row;
     }
     const numWrap = document.createElement('div');
     numWrap.className = 'video-num-wrap';
-    const wNum = num(getLang().video_width || 'Width', 480, 64, 1280, 16);
-    const hNum = num(getLang().video_height || 'Height', 832, 64, 1280, 16);
-    const lenNum = num(getLang().video_frames || 'Frames', 49, 5, 161, 4);
-    const fpsNum = num(getLang().video_fps || 'FPS', 16, 1, 60, 1);
-    const stepsNum = num(getLang().video_steps || 'Steps', 6, 1, 60, 1);
-    const cfgNum = num(getLang().video_cfg || 'CFG', 1, 0, 15, 0.5);
-    const seedNum = num(getLang().video_seed || 'Seed (-1 random)', -1, -1, undefined, 1);
+    const wNum = num(getLang().video_width || 'Width', 480, 64, 1280, 16, 'video_width');
+    const hNum = num(getLang().video_height || 'Height', 832, 64, 1280, 16, 'video_height');
+    const lenNum = num(getLang().video_frames || 'Frames', 49, 5, 161, 4, 'video_frames');
+    const fpsNum = num(getLang().video_fps || 'FPS', 16, 1, 60, 1, 'video_fps');
+    const stepsNum = num(getLang().video_steps || 'Steps', 6, 1, 60, 1, 'video_steps');
+    const cfgNum = num(getLang().video_cfg || 'CFG', 1, 0, 15, 0.5, 'video_cfg');
+    const seedNum = num(getLang().video_seed || 'Seed (-1 random)', -1, -1, undefined, 1, 'video_seed');
     for (const r of [wNum, hNum, lenNum, fpsNum, stepsNum, cfgNum, seedNum]) numWrap.appendChild(r);
     container.appendChild(numWrap);
+
+    // Save-all-settings: write every current field into globalSettings and save
+    // it to the active settings file so the tab reloads exactly as left off.
+    const saveRow = document.createElement('div');
+    saveRow.className = 'video-row';
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'video-btn';
+    saveBtn.textContent = getLang().video_save_settings || '💾 Save all settings';
+    const saveStatus = document.createElement('span');
+    saveStatus.className = 'video-status';
+    saveBtn.addEventListener('click', async () => {
+        const S = globalThis.globalSettings;
+        // Capture everything (in case a field wasn't blurred to fire 'change').
+        S.video_width = Number(wNum._input.value);
+        S.video_height = Number(hNum._input.value);
+        S.video_frames = Number(lenNum._input.value);
+        S.video_fps = Number(fpsNum._input.value);
+        S.video_steps = Number(stepsNum._input.value);
+        S.video_cfg = Number(cfgNum._input.value);
+        S.video_seed = Number(seedNum._input.value);
+        S.video_extra_prompt = extraInput.value;
+        S.video_pos_prompt = posPromptInput.value;
+        S.video_workflow_name = wfSelect.value;
+        S.video_motion = motionRow._current()?.label || '';
+        S.video_position = positionRow._current()?.label || '';
+        const fileName = (S.lastLoadedSettings || 'settings') + '.json';
+        const toSave = { ...S };
+        delete toSave.lastLoadedSettings;
+        let ok = false;
+        if (globalThis.api?.saveSettingFile) ok = await globalThis.api.saveSettingFile(fileName, toSave).catch(() => false);
+        saveStatus.textContent = ok
+            ? (getLang().video_saved_settings || `Saved to ${fileName} ✓ — restores on next launch`).replace('{0}', fileName)
+            : (getLang().video_save_failed || 'Save failed (desktop only).');
+    });
+    saveRow.appendChild(saveBtn);
+    saveRow.appendChild(saveStatus);
+    container.appendChild(saveRow);
 
     // Match the output W/H to the chosen input image's aspect ratio (snapped to
     // /16, longer side capped ~832) so a landscape image stays landscape instead
@@ -456,6 +511,7 @@ export function setupVideoTab(containerId) {
     // any previously position-injected LoRAs but keeping your manual ones.
     positionRow._onSelect = (entry) => {
         posPromptInput.value = entry ? (entry.prompt || '') : '';
+        globalThis.globalSettings.video_pos_prompt = posPromptInput.value;
         loraStack = loraStack.filter(l => !l.fromPosition);
         const posLoras = entry && Array.isArray(entry.loras) ? entry.loras : [];
         for (const pl of posLoras) {
@@ -740,9 +796,14 @@ export function setupVideoTab(containerId) {
     const runBtn = document.createElement('button');
     runBtn.className = 'video-run';
     runBtn.textContent = getLang().video_run || 'Animate ▶';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'video-cancel';
+    cancelBtn.textContent = getLang().video_cancel || '■ Stop';
+    cancelBtn.style.display = 'none';
     const status = document.createElement('span');
     status.className = 'video-status';
     runRow.appendChild(runBtn);
+    runRow.appendChild(cancelBtn);
     runRow.appendChild(status);
     container.appendChild(runRow);
     function setStatus(t) { status.textContent = t; }
@@ -793,6 +854,7 @@ export function setupVideoTab(containerId) {
         updateRunGate();
     }
     function updateRunGate() {
+        cancelBtn.style.display = processing ? '' : 'none';
         if (lastPreflightReady === false) {
             runBtn.disabled = true;
             runBtn.classList.add('not-ready');
@@ -834,13 +896,22 @@ export function setupVideoTab(containerId) {
         progBar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
     }
 
-    // Live sampling progress from ComfyUI's websocket.
+    // Live preview frame (the animation as it's being denoised), shown in the
+    // preview window while a job runs and cleared when it finishes.
+    const livePreview = document.createElement('img');
+    livePreview.className = 'video-live-preview';
+    livePreview.style.display = 'none';
+    outBox.appendChild(livePreview);
+    function clearLivePreview() { livePreview.style.display = 'none'; livePreview.removeAttribute('src'); }
+
+    // Live sampling progress + preview frames from ComfyUI's websocket.
     if (globalThis.api?.onComfyVideoProgress) {
         globalThis.api.onComfyVideoProgress((p) => {
-            if (!running) return;
-            if (p && typeof p.value === 'number' && typeof p.max === 'number' && p.max > 0) {
+            if (!running || !p) return;
+            if (typeof p.value === 'number' && typeof p.max === 'number' && p.max > 0) {
                 setProgress((p.value / p.max) * 100);
             }
+            if (p.preview) { livePreview.src = p.preview; livePreview.style.display = 'block'; }
         });
     }
 
@@ -863,7 +934,11 @@ export function setupVideoTab(containerId) {
             wfSelect.appendChild(o);
         }
         if (selectName) wfSelect.value = selectName;
+        else if (globalThis.globalSettings.video_workflow_name && list.includes(globalThis.globalSettings.video_workflow_name)) {
+            wfSelect.value = globalThis.globalSettings.video_workflow_name;
+        }
     }
+    wfSelect.addEventListener('change', () => { globalThis.globalSettings.video_workflow_name = wfSelect.value; });
     importBtn.addEventListener('click', async () => {
         const json = prompt(getLang().video_import_paste || 'Paste your ComfyUI "Save (API Format)" JSON here:');
         if (!json) return;
@@ -992,14 +1067,25 @@ export function setupVideoTab(containerId) {
             clearInterval(timer);
             running = false;
             setProgress(null);
-            renderResult(res, start);
+            clearLivePreview();
+            if (res && res.error === 'cancelled') setStatus(getLang().video_stopped || 'Stopped ■');
+            else renderResult(res, start);
             activeJob = null;
             updateQueueUI();
         }
         processing = false;
         updateRunGate();
-        setStatus((getLang().video_queue_done || 'Queue finished ✓'));
+        if (status.textContent !== (getLang().video_stopped || 'Stopped ■')) {
+            setStatus((getLang().video_queue_done || 'Queue finished ✓'));
+        }
     }
+    cancelBtn.addEventListener('click', async () => {
+        jobQueue.length = 0;   // drop everything still waiting
+        setStatus(getLang().video_stopping || 'Stopping…');
+        const addr = addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000';
+        await api.interrupt(addr).catch(() => {});
+        updateQueueUI();
+    });
     runBtn.addEventListener('click', () => {
         if (!inputImage) { setStatus(getLang().video_no_image || 'Pick an input image first.'); return; }
         if (!wfSelect.value) { setStatus(getLang().video_no_workflow || 'Import a workflow first.'); return; }
@@ -1240,6 +1326,13 @@ export function setupVideoTab(containerId) {
             }
         } catch (err) {
             console.warn(CAT, 'scenes load failed, using defaults', err);
+        }
+        // Restore the saved position's LoRAs/prompt (selection itself was restored
+        // in _rebuild); re-apply the saved prompt text in case it was edited.
+        const restoredPos = positionRow._current();
+        if (restoredPos) {
+            positionRow._onSelect(restoredPos);
+            if (globalThis.globalSettings.video_pos_prompt) posPromptInput.value = globalThis.globalSettings.video_pos_prompt;
         }
         await refreshWorkflows();
         runPreflight();

@@ -261,11 +261,18 @@ function findVideoOutput(history, promptId) {
 async function pollResult(addr, promptId, timeoutMs) {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
+        if (cancelRequested) throw new Error('cancelled');
         const resp = await fetch(`${comfyBase(addr)}/history/${promptId}`).catch(() => null);
         if (resp && resp.ok) {
             const hist = await resp.json().catch(() => null);
             const out = hist && findVideoOutput(hist, promptId);
             if (out) return out;
+            // The prompt finished but produced no video output — e.g. it was
+            // interrupted. Stop instead of polling until the long timeout.
+            const status = hist?.[promptId]?.status;
+            if (status && (status.completed === true || status.status_str === 'error')) {
+                throw new Error('cancelled');
+            }
         }
         await new Promise(r => setTimeout(r, 1500));
     }
@@ -296,12 +303,26 @@ function saveVideo(buf, filename) {
     }
 }
 
-// Listen to ComfyUI's websocket for sampling progress and forward it.
+// Listen to ComfyUI's websocket for sampling progress AND live preview frames,
+// forwarding both. Preview frames arrive as binary messages: 4-byte event type
+// (1 = preview image), 4-byte image format (1=JPEG, 2=PNG), then the image bytes.
 function openProgressWs(addr, clientId, onProgress) {
     try {
         const wsUrl = `${comfyBase(addr).replace(/^http/i, 'ws')}/ws?clientId=${encodeURIComponent(clientId)}`;
         const ws = new WebSocket(wsUrl);
-        ws.on('message', (data) => {
+        ws.on('message', (data, isBinary) => {
+            if (isBinary && Buffer.isBuffer(data) && data.length > 8) {
+                try {
+                    const eventType = data.readUInt32BE(0);
+                    if (eventType === 1) {   // preview image
+                        const imageType = data.readUInt32BE(4);
+                        const mime = imageType === 2 ? 'image/png' : 'image/jpeg';
+                        const img = data.subarray(8);
+                        onProgress?.({ preview: `data:${mime};base64,${img.toString('base64')}` });
+                    }
+                } catch { /* ignore */ }
+                return;
+            }
             try {
                 const msg = JSON.parse(data.toString());
                 if (msg.type === 'progress' && msg.data) {
@@ -318,6 +339,19 @@ function openProgressWs(addr, clientId, onProgress) {
     }
 }
 
+// Cancellation: the renderer can request an interrupt mid-run. We POST to
+// ComfyUI's /interrupt and flip a flag the poller checks so it returns promptly.
+let cancelRequested = false;
+async function interruptComfy(addr) {
+    cancelRequested = true;
+    try {
+        const resp = await fetch(`${comfyBase(addr)}/interrupt`, { method: 'POST' });
+        return { ok: resp.ok };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
 async function runVideo(params, onProgress) {
     let ws = null;
     try {
@@ -328,6 +362,7 @@ async function runVideo(params, onProgress) {
         if (!graph) return { ok: false, error: 'workflow not found — import your WAN API JSON first' };
         if (!params.image) return { ok: false, error: 'no input image' };
 
+        cancelRequested = false;   // fresh run
         const clientId = params.clientId || 'saa-video';
         ws = openProgressWs(addr, clientId, onProgress);
 
@@ -521,6 +556,7 @@ export function setupComfyVideo() {
     ipcMain.handle('comfy-video-ping', async (event, addr) => pingComfy(addr));
     ipcMain.handle('comfy-video-models', async (event, addr) => getComfyModels(addr));
     ipcMain.handle('comfy-video-preflight', async (event, params) => preflight(params));
+    ipcMain.handle('comfy-video-interrupt', async (event, addr) => interruptComfy(addr));
     ipcMain.handle('comfy-video-catalog', async () => loadCatalog());
     ipcMain.handle('comfy-video-download-model', async (event, params) =>
         downloadModel(params, (p) => { try { event.sender.send('comfy-video-dl-progress', p); } catch { /* ignore */ } }));

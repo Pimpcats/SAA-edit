@@ -143,6 +143,11 @@ html, body {
 .video-queue-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; padding: 2px 4px; border-radius: 4px; }
 .video-queue-item.active { background: rgba(58,123,213,0.25); font-weight: bold; }
 .video-result-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+
+/* Stop button + live preview */
+.video-cancel { padding: 8px 16px; border: none; border-radius: 8px; background: #e74c3c; color: #fff; font-weight: bold; cursor: pointer; }
+.video-cancel:hover { background: #ff5e4d; }
+.video-live-preview { max-width: 100%; border-radius: 8px; display: block; }
 .video-saved-path { font-size: 11px; opacity: 0.6; word-break: break-all; }
 .video-progress { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; }
 .video-progress-bar { height: 100%; width: 0; background: #3a7bd5; transition: width 0.2s ease; }
