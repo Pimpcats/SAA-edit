@@ -103,9 +103,14 @@ export function setupVideoTab(containerId) {
         let loras = [];
         if (Array.isArray(e.loras)) {
             loras = e.loras.filter(l => l && l.name)
-                .map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0 }));
+                .map(l => ({
+                    name: l.name,
+                    strength: (typeof l.strength === 'number') ? l.strength : 1.0,
+                    target: (l.target === 'high' || l.target === 'low') ? l.target : 'both'
+                }));
         } else if (e.lora) {
-            loras = [{ name: e.lora, strength: (typeof e.strength === 'number') ? e.strength : 1.0 }];
+            // legacy single-file act lora -> applies to both paths
+            loras = [{ name: e.lora, strength: (typeof e.strength === 'number') ? e.strength : 1.0, target: 'both' }];
         }
         return {
             label: e.label || e.prompt || '',
@@ -309,15 +314,20 @@ export function setupVideoTab(containerId) {
     const extraLoraList = document.createElement('div');
     extraLoraWrap.appendChild(extraLoraList);
 
-    // In-memory stack: [{name, strength, fromPosition}]. Seeded from settings.
+    // In-memory stack: [{name, strength, target, fromPosition}]. Seeded from settings.
+    // target is 'both' | 'high' | 'low' — for WAN 2.2, a high-noise LoRA only
+    // patches the high model path and a low-noise LoRA only the low path.
     let loraStack = (Array.isArray(globalThis.globalSettings.video_extra_loras) ? globalThis.globalSettings.video_extra_loras : [])
-        .map(l => ({ name: l.name || '', strength: (typeof l.strength === 'number') ? l.strength : 1.0, fromPosition: false }));
+        .map(l => ({
+            name: l.name || '', strength: (typeof l.strength === 'number') ? l.strength : 1.0,
+            target: (l.target === 'high' || l.target === 'low') ? l.target : 'both', fromPosition: false
+        }));
 
     function persistLoraStack() {
         // Persist only the manually-added LoRAs (position ones come from the list).
         globalThis.globalSettings.video_extra_loras = loraStack
             .filter(l => !l.fromPosition && l.name)
-            .map(l => ({ name: l.name, strength: l.strength }));
+            .map(l => ({ name: l.name, strength: l.strength, target: l.target || 'both' }));
     }
 
     function renderLoraStack() {
@@ -325,6 +335,14 @@ export function setupVideoTab(containerId) {
         loraStack.forEach((l, i) => {
             const row = document.createElement('div');
             row.className = 'video-row';
+            const tgt = document.createElement('select');
+            tgt.className = 'video-select'; tgt.style.maxWidth = '90px';
+            tgt.title = getLang().video_lora_target || 'Which model path this LoRA patches';
+            for (const [v, t] of [['both', getLang().video_lora_both || 'Both'], ['high', getLang().video_lora_high || 'High'], ['low', getLang().video_lora_low || 'Low']]) {
+                const o = document.createElement('option'); o.value = v; o.textContent = t; tgt.appendChild(o);
+            }
+            tgt.value = l.target || 'both';
+            tgt.addEventListener('change', () => { l.target = tgt.value; persistLoraStack(); });
             const sel = document.createElement('select');
             sel.className = 'video-select';
             rebuildOptions(sel, loraList, l.name);
@@ -335,6 +353,7 @@ export function setupVideoTab(containerId) {
             str.style.maxWidth = '70px'; str.title = getLang().video_extra_lora_strength || 'strength';
             str.value = l.strength;
             str.addEventListener('change', () => { l.strength = Number(str.value); persistLoraStack(); });
+            row.appendChild(tgt);
             row.appendChild(sel);
             row.appendChild(str);
             if (l.fromPosition) {
@@ -358,7 +377,7 @@ export function setupVideoTab(containerId) {
     const addLoraBtn = document.createElement('button');
     addLoraBtn.className = 'video-btn';
     addLoraBtn.textContent = getLang().video_add_lora || '+ Add LoRA';
-    addLoraBtn.addEventListener('click', () => { loraStack.push({ name: '', strength: 1.0, fromPosition: false }); renderLoraStack(); });
+    addLoraBtn.addEventListener('click', () => { loraStack.push({ name: '', strength: 1.0, target: 'both', fromPosition: false }); renderLoraStack(); });
     addLoraRow.appendChild(addLoraBtn);
     extraLoraWrap.appendChild(addLoraRow);
 
@@ -368,7 +387,12 @@ export function setupVideoTab(containerId) {
         loraStack = loraStack.filter(l => !l.fromPosition);
         const posLoras = entry && Array.isArray(entry.loras) ? entry.loras : [];
         for (const pl of posLoras) {
-            if (pl && pl.name) loraStack.push({ name: pl.name, strength: (typeof pl.strength === 'number') ? pl.strength : 1.0, fromPosition: true });
+            if (pl && pl.name) loraStack.push({
+                name: pl.name,
+                strength: (typeof pl.strength === 'number') ? pl.strength : 1.0,
+                target: (pl.target === 'high' || pl.target === 'low') ? pl.target : 'both',
+                fromPosition: true
+            });
         }
         renderLoraStack();
     };
@@ -710,7 +734,7 @@ export function setupVideoTab(containerId) {
             clipName: clipField._input.value.trim() || undefined,
             vaeName: vaeField._input.value.trim() || undefined,
             loraName: loraField._input.value.trim() || undefined,
-            extraLoras: loraStack.filter(l => l.name).map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0 })),
+            extraLoras: loraStack.filter(l => l.name).map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0, target: l.target || 'both' })),
             addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000')
         };
 
@@ -817,9 +841,17 @@ export function setupVideoTab(containerId) {
                 const row = document.createElement('div');
                 row.className = 'video-editor-row';
                 if (cat === 'position') {
-                    // Position entries are objects: label, describing prompt, LoRA, strength.
+                    // Position entries: label, describing prompt, a high-noise LoRA, a
+                    // low-noise LoRA (WAN 2.2 pair — put the SAME file in both for a
+                    // single-file LoRA), and one strength applied to both.
                     let e = arr[i];
-                    if (typeof e === 'string') { e = { label: e, prompt: e, lora: '', strength: 1.0 }; arr[i] = e; }
+                    if (typeof e === 'string') { e = { label: e, prompt: e, loras: [] }; arr[i] = e; }
+                    const norm = normEntry(e);
+                    const highVal = (norm.loras.find(l => l.target === 'high')?.name)
+                        || (norm.loras.find(l => l.target === 'both')?.name) || '';
+                    const lowVal = (norm.loras.find(l => l.target === 'low')?.name)
+                        || (norm.loras.find(l => l.target === 'both')?.name) || '';
+                    const strVal = (norm.loras[0]?.strength ?? (typeof e.strength === 'number' ? e.strength : 1.0));
                     const labelI = document.createElement('input');
                     labelI.type = 'text'; labelI.className = 'video-text'; labelI.style.maxWidth = '120px';
                     labelI.placeholder = getLang().video_pos_label || 'name';
@@ -830,18 +862,34 @@ export function setupVideoTab(containerId) {
                     promptI.placeholder = getLang().video_pos_prompt || 'prompt describing the act';
                     promptI.value = e.prompt || '';
                     promptI.addEventListener('change', async () => { e.prompt = promptI.value.trim(); await persistScenes(); });
-                    const loraS = document.createElement('select');
-                    loraS.className = 'video-select'; loraS.style.maxWidth = '170px';
-                    loraOptions(loraS, e.lora || '');
-                    loraS.addEventListener('change', async () => { e.lora = loraS.value; await persistScenes(); });
+                    const highS = document.createElement('select');
+                    highS.className = 'video-select'; highS.style.maxWidth = '150px';
+                    highS.title = getLang().video_lora_high_t || 'High-noise LoRA';
+                    loraOptions(highS, highVal);
+                    const lowS = document.createElement('select');
+                    lowS.className = 'video-select'; lowS.style.maxWidth = '150px';
+                    lowS.title = getLang().video_lora_low_t || 'Low-noise LoRA';
+                    loraOptions(lowS, lowVal);
                     const strI = document.createElement('input');
                     strI.type = 'number'; strI.step = '0.05'; strI.min = '0'; strI.max = '2'; strI.style.maxWidth = '58px';
                     strI.title = getLang().video_extra_lora_strength || 'LoRA strength';
-                    strI.value = (typeof e.strength === 'number') ? e.strength : 1.0;
-                    strI.addEventListener('change', async () => { e.strength = Number(strI.value); await persistScenes(); });
+                    strI.value = strVal;
+                    const writeLoras = async () => {
+                        const s = Number(strI.value);
+                        const list = [];
+                        if (highS.value) list.push({ name: highS.value, target: 'high', strength: s });
+                        if (lowS.value) list.push({ name: lowS.value, target: 'low', strength: s });
+                        e.loras = list;
+                        delete e.lora; delete e.strength;
+                        await persistScenes();
+                    };
+                    highS.addEventListener('change', writeLoras);
+                    lowS.addEventListener('change', writeLoras);
+                    strI.addEventListener('change', writeLoras);
                     row.appendChild(labelI);
                     row.appendChild(promptI);
-                    row.appendChild(loraS);
+                    row.appendChild(highS);
+                    row.appendChild(lowS);
                     row.appendChild(strI);
                     row.appendChild(mkDel(arr, i));
                 } else {
@@ -863,7 +911,7 @@ export function setupVideoTab(containerId) {
         addBtn.className = 'video-btn';
         addBtn.textContent = getLang().video_edit_add || '+ Add entry';
         addBtn.addEventListener('click', () => {
-            scenes[cat].push(cat === 'position' ? { label: '', prompt: '', lora: '', strength: 1.0 } : '');
+            scenes[cat].push(cat === 'position' ? { label: '', prompt: '', loras: [] } : '');
             buildRows();
             const inputs = listEl.querySelectorAll('input');
             if (inputs.length) inputs[inputs.length - 1].focus();

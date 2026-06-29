@@ -144,25 +144,49 @@ function patchGraph(graphIn, params, uploadedName) {
         }
     }
 
-    // Extra LoRA stack: chain one or more LoRAs (e.g. NSFW/motion LoRAs) onto
-    // every model path by inserting LoraLoaderModelOnly nodes before each sampler.
-    // This covers WAN 2.2's two models without editing the workflow. Accepts an
-    // array (extraLoras) and, for back-compat, a single extraLoraName.
+    // Extra LoRA stack: chain one or more LoRAs (e.g. NSFW/motion LoRAs) onto the
+    // model paths by inserting LoraLoaderModelOnly nodes before each sampler. Each
+    // LoRA carries a target ('both'|'high'|'low'); WAN 2.2 NSFW LoRAs come as a
+    // high-noise + low-noise pair, so a 'high' LoRA only patches the high-noise
+    // path and a 'low' LoRA only the low-noise path. 'both' (or any single-model
+    // workflow) patches every path. Accepts an array (extraLoras) and, for
+    // back-compat, a single extraLoraName.
     const extraLoras = Array.isArray(params.extraLoras)
-        ? params.extraLoras.filter(l => l && l.name).map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0 }))
+        ? params.extraLoras.filter(l => l && l.name).map(l => ({
+            name: l.name,
+            strength: (typeof l.strength === 'number') ? l.strength : 1.0,
+            target: (l.target === 'high' || l.target === 'low') ? l.target : 'both'
+        }))
         : [];
     if (params.extraLoraName) {
-        extraLoras.push({ name: params.extraLoraName, strength: (typeof params.extraLoraStrength === 'number') ? params.extraLoraStrength : 1.0 });
+        extraLoras.push({ name: params.extraLoraName, strength: (typeof params.extraLoraStrength === 'number') ? params.extraLoraStrength : 1.0, target: 'both' });
     }
     if (extraLoras.length) {
         let targets = entries.filter(([, n]) => ctOf(n).includes('modelsamplingsd3') && Array.isArray(n.inputs?.model));
         if (targets.length === 0) {
             targets = entries.filter(([, n]) => ctOf(n).includes('ksampler') && Array.isArray(n.inputs?.model));
         }
+        // Resolve each path's high/low rank by walking its model chain back to the
+        // UNETLoader and reading the model filename.
+        const unetNameOf = (modelRef) => {
+            let ref = modelRef, guard = 0;
+            while (Array.isArray(ref) && guard++ < 64) {
+                const node = g[ref[0]];
+                if (!node || !node.inputs) break;
+                if (isUnet(node)) return String(node.inputs.unet_name || node.inputs.ckpt_name || '').toLowerCase();
+                ref = node.inputs.model;
+            }
+            return '';
+        };
+        const singlePath = targets.length === 1;
         let pathIdx = 0;
         for (const [, t] of targets) {
+            const name = unetNameOf(t.inputs.model);
+            const rank = name.includes('high') ? 'high' : (name.includes('low') ? 'low' : '');
             let cur = t.inputs.model;   // chain: model -> lora1 -> lora2 -> ... -> sampler
             extraLoras.forEach((l, li) => {
+                const apply = l.target === 'both' || singlePath || l.target === rank;
+                if (!apply) return;
                 const newId = `saa_extra_lora_${pathIdx}_${li}`;
                 g[newId] = {
                     class_type: 'LoraLoaderModelOnly',
