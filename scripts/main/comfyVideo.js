@@ -129,7 +129,22 @@ function patchGraph(graphIn, params, uploadedName) {
         if (ct.includes('ksampler') && n.inputs) {
             if (params.seed !== undefined && 'seed' in n.inputs) n.inputs.seed = Number(params.seed);
             if (params.seed !== undefined && 'noise_seed' in n.inputs) n.inputs.noise_seed = Number(params.seed);
-            if (params.steps !== undefined && 'steps' in n.inputs) n.inputs.steps = Number(params.steps);
+            if (params.steps !== undefined && 'steps' in n.inputs) {
+                // Scale advanced-sampler step boundaries (start/end_at_step)
+                // proportionally so the two-model WAN 2.2 high/low split stays
+                // correct when the step count changes. (Large sentinels like
+                // 10000 are left alone.)
+                const old = n.inputs.steps;
+                if (typeof old === 'number' && old > 0) {
+                    const ratio = Number(params.steps) / old;
+                    for (const f of ['start_at_step', 'end_at_step']) {
+                        if (typeof n.inputs[f] === 'number' && n.inputs[f] <= old) {
+                            n.inputs[f] = Math.round(n.inputs[f] * ratio);
+                        }
+                    }
+                }
+                n.inputs.steps = Number(params.steps);
+            }
             if (params.cfg !== undefined && 'cfg' in n.inputs) n.inputs.cfg = Number(params.cfg);
         }
         if (n.inputs && (ct.includes('videocombine') || ct.includes('saveanimated') || ct.includes('savevideo') || ct.includes('savewebm') || ct.includes('createvideo'))) {

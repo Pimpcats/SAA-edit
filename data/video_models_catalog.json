@@ -34,5 +34,17 @@
     "subdir": "clip_vision",
     "filename": "clip_vision_h.safetensors",
     "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
+  },
+  {
+    "label": "Lightning LoRA — WAN 2.2 I2V 4-step HIGH noise (for fast template)",
+    "subdir": "loras",
+    "filename": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors"
+  },
+  {
+    "label": "Lightning LoRA — WAN 2.2 I2V 4-step LOW noise (for fast template)",
+    "subdir": "loras",
+    "filename": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors"
   }
 ]
