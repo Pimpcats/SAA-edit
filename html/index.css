@@ -119,6 +119,22 @@ html, body {
 .video-test-status.err { color: #e74c3c; }
 .video-result { display: flex; flex-direction: column; gap: 4px; }
 .video-out { max-width: 100%; border-radius: 8px; }
+
+/* Collapsible section header (download area) */
+.video-collapse-header { user-select: none; }
+.video-collapse-header:hover { opacity: 0.9; }
+
+/* Readiness check (preflight) */
+.video-preflight { border: 1px solid #555; border-radius: 8px; padding: 6px 8px; margin-top: 6px; }
+.video-preflight-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.video-preflight-list { display: flex; flex-direction: column; gap: 2px; }
+.video-preflight-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.video-preflight-mark { width: 14px; text-align: center; font-weight: bold; }
+.video-preflight-item.ok { color: #1ce088; }
+.video-preflight-item.bad { color: #e74c3c; }
+.video-preflight-item.warn { color: #f1c40f; }
+.video-run.not-ready { background: #e74c3c; }
+.video-run.not-ready:hover { background: #e74c3c; }
 .video-saved-path { font-size: 11px; opacity: 0.6; word-break: break-all; }
 .video-progress { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; }
 .video-progress-bar { height: 100%; width: 0; background: #3a7bd5; transition: width 0.2s ease; }

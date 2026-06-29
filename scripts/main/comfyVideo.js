@@ -380,21 +380,24 @@ function firstChoiceList(req, field) {
 async function getComfyModels(addr) {
     if (!addr) return { ok: false, error: 'no address' };
     try {
-        const [unet, gguf, ckpt, clip, vae, lora] = await Promise.all([
+        const [unet, gguf, ckpt, clip, clipGguf, vae, lora, clipVision] = await Promise.all([
             objInfoRequired(addr, 'UNETLoader'),
             objInfoRequired(addr, 'UnetLoaderGGUF'),
             objInfoRequired(addr, 'CheckpointLoaderSimple'),
             objInfoRequired(addr, 'CLIPLoader'),
+            objInfoRequired(addr, 'CLIPLoaderGGUF'),
             objInfoRequired(addr, 'VAELoader'),
-            objInfoRequired(addr, 'LoraLoaderModelOnly')
+            objInfoRequired(addr, 'LoraLoaderModelOnly'),
+            objInfoRequired(addr, 'CLIPVisionLoader')
         ]);
         const uniq = (a) => [...new Set(a)].sort((x, y) => x.localeCompare(y));
         return {
             ok: true,
             unet: uniq([...firstChoiceList(unet, 'unet_name'), ...firstChoiceList(gguf, 'unet_name'), ...firstChoiceList(ckpt, 'ckpt_name')]),
-            clip: uniq(firstChoiceList(clip, 'clip_name')),
+            clip: uniq([...firstChoiceList(clip, 'clip_name'), ...firstChoiceList(clipGguf, 'clip_name')]),
             vae: uniq(firstChoiceList(vae, 'vae_name')),
-            lora: uniq(firstChoiceList(lora, 'lora_name'))
+            lora: uniq(firstChoiceList(lora, 'lora_name')),
+            clipVision: uniq(firstChoiceList(clipVision, 'clip_name'))
         };
     } catch (err) {
         return { ok: false, error: err.message };
@@ -458,9 +461,66 @@ async function pingComfy(addr) {
     }
 }
 
+// Preflight: dry-patch the selected workflow with the same params a real run
+// would use, then check every model/lora/vae/clip file it references against
+// what ComfyUI actually has. Returns a checklist so the UI can show green/red
+// BEFORE the user hits Animate (avoids value_not_in_list at submit time).
+async function preflight(params) {
+    const out = { ok: true, checks: [], ready: false };
+    const push = (kind, label, name, present, required = true) =>
+        out.checks.push({ kind, label, name: name || '', present: !!present, required });
+
+    if (!params.workflow) { push('workflow', 'Workflow selected', '', false); return finalizePreflight(out); }
+    const graph = loadWorkflowGraph(params.workflow);
+    if (!graph) { push('workflow', 'Workflow file', params.workflow, false); return finalizePreflight(out); }
+
+    push('image', 'Input image chosen', '', params.hasImage);
+
+    const models = await getComfyModels(params.addr);
+    const connected = !!(models && models.ok);
+    push('connection', 'ComfyUI connected', params.addr, connected);
+    if (!connected) { out.error = models && models.error; return finalizePreflight(out); }
+
+    let patched;
+    try { patched = patchGraph(graph, params, 'preflight_placeholder.png'); }
+    catch (err) { out.error = err.message; return finalizePreflight(out); }
+
+    const has = (list, name) => Array.isArray(list) && list.includes(name);
+    const seen = new Set();
+    const check = (kind, label, name, list) => {
+        if (!name || typeof name !== 'string') return;
+        const key = kind + '|' + name;
+        if (seen.has(key)) return;
+        seen.add(key);
+        push(kind, label, name, has(list, name));
+    };
+    for (const n of Object.values(patched)) {
+        const ct = String(n.class_type || '').toLowerCase();
+        const inp = n.inputs || {};
+        if (ct.includes('unetloader') || ct.includes('checkpointloader')) {
+            check('model', 'Diffusion model', inp.unet_name || inp.ckpt_name, models.unet);
+        } else if (ct.includes('clipvision')) {
+            check('clip_vision', 'CLIP vision', inp.clip_name, models.clipVision);
+        } else if (ct.includes('cliploader')) {
+            check('clip', 'Text encoder (CLIP)', inp.clip_name, models.clip);
+        } else if (ct.includes('vaeloader')) {
+            check('vae', 'VAE', inp.vae_name, models.vae);
+        } else if (ct.includes('lora')) {
+            check('lora', 'LoRA', inp.lora_name, models.lora);
+        }
+    }
+    return finalizePreflight(out);
+}
+function finalizePreflight(out) {
+    out.ready = out.checks.length > 0 && out.checks.every(c => !c.required || c.present);
+    out.missing = out.checks.filter(c => c.required && !c.present);
+    return out;
+}
+
 export function setupComfyVideo() {
     ipcMain.handle('comfy-video-ping', async (event, addr) => pingComfy(addr));
     ipcMain.handle('comfy-video-models', async (event, addr) => getComfyModels(addr));
+    ipcMain.handle('comfy-video-preflight', async (event, params) => preflight(params));
     ipcMain.handle('comfy-video-catalog', async () => loadCatalog());
     ipcMain.handle('comfy-video-download-model', async (event, params) =>
         downloadModel(params, (p) => { try { event.sender.send('comfy-video-dl-progress', p); } catch { /* ignore */ } }));

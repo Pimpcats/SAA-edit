@@ -28,12 +28,14 @@ export function setupVideoTab(containerId) {
         get: (n) => (globalThis.api?.comfyVideoGet ? globalThis.api.comfyVideoGet(n) : Promise.resolve(null)),
         save: (n, g) => (globalThis.api?.comfyVideoSave ? globalThis.api.comfyVideoSave(n, g) : Promise.resolve(null)),
         saveScenes: (s) => (globalThis.api?.comfyVideoSaveScenes ? globalThis.api.comfyVideoSaveScenes(s) : Promise.resolve(null)),
-        run: (p) => (globalThis.api?.comfyVideoRun ? globalThis.api.comfyVideoRun(p) : Promise.resolve({ ok: false, error: 'desktop only' }))
+        run: (p) => (globalThis.api?.comfyVideoRun ? globalThis.api.comfyVideoRun(p) : Promise.resolve({ ok: false, error: 'desktop only' })),
+        preflight: (p) => (globalThis.api?.comfyVideoPreflight ? globalThis.api.comfyVideoPreflight(p) : Promise.resolve(null))
     };
 
     let scenes = DEFAULT_SCENES;
     let inputImage = null;   // data URL of the image to animate
     let loraList = [];       // last-loaded ComfyUI lora list (for the editor's picker)
+    let triggerPreflight = () => {};   // re-run the readiness check (set up later)
 
     // ---- UI ----
     container.innerHTML = '';
@@ -58,7 +60,7 @@ export function setupVideoTab(containerId) {
     useLastBtn.textContent = getLang().video_use_last || 'Use last image';
     useLastBtn.addEventListener('click', () => {
         const src = document.querySelector('.cg-main-image')?.src || globalThis.generate?.lastThumb;
-        if (src) { inputImage = src; preview.src = src; }
+        if (src) { inputImage = src; preview.src = src; triggerPreflight(); }
         else setStatus(getLang().video_no_image || 'No gallery image yet — generate one first.');
     });
     imgBtns.appendChild(useLastBtn);
@@ -88,7 +90,7 @@ export function setupVideoTab(containerId) {
         const file = e.dataTransfer?.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => { inputImage = reader.result; preview.src = reader.result; };
+        reader.onload = () => { inputImage = reader.result; preview.src = reader.result; triggerPreflight(); };
         reader.readAsDataURL(file);
     });
 
@@ -328,6 +330,7 @@ export function setupVideoTab(containerId) {
         globalThis.globalSettings.video_extra_loras = loraStack
             .filter(l => !l.fromPosition && l.name)
             .map(l => ({ name: l.name, strength: l.strength, target: l.target || 'both' }));
+        triggerPreflight();
     }
 
     function renderLoraStack() {
@@ -395,6 +398,7 @@ export function setupVideoTab(containerId) {
             });
         }
         renderLoraStack();
+        triggerPreflight();
     };
 
     const loadModelsRow = document.createElement('div');
@@ -423,6 +427,7 @@ export function setupVideoTab(containerId) {
         renderLoraStack();   // repopulate the stack's LoRA dropdowns
         modelsStatus.textContent = (getLang().video_models_loaded || '{0} models, {1} loras')
             .replace('{0}', res.unet.length).replace('{1}', res.lora.length);
+        triggerPreflight();
     }
     loadModelsBtn.addEventListener('click', loadModels);
 
@@ -604,6 +609,21 @@ export function setupVideoTab(containerId) {
         }
     });
 
+    // Make the download area collapsible (collapsed by default — it's only needed
+    // occasionally). The title becomes a clickable header with a ▸/▾ caret.
+    const dlBody = document.createElement('div');
+    while (dlWrap.children.length > 1) dlBody.appendChild(dlWrap.children[1]);
+    dlWrap.appendChild(dlBody);
+    let dlOpen = false;
+    const dlTitleText = getLang().video_dl_title || 'Download a model into ComfyUI';
+    dlTitle.style.cursor = 'pointer';
+    dlTitle.classList.add('video-collapse-header');
+    const updateDl = () => {
+        dlBody.style.display = dlOpen ? '' : 'none';
+        dlTitle.textContent = (dlOpen ? '▾ ' : '▸ ') + dlTitleText;
+    };
+    dlTitle.addEventListener('click', () => { dlOpen = !dlOpen; updateDl(); });
+    updateDl();
     container.appendChild(dlWrap);
 
     // Load the download catalog.
@@ -618,6 +638,28 @@ export function setupVideoTab(containerId) {
         }).catch(() => {});
     }
 
+    // ---- Readiness check (preflight) -------------------------------------
+    // Before animating, verify every file the chosen workflow needs actually
+    // exists in ComfyUI, plus connection + input image. Shows a green/red
+    // checklist and blocks Animate until everything required is green.
+    const preflightPanel = document.createElement('div');
+    preflightPanel.className = 'video-preflight';
+    const preflightHeader = document.createElement('div');
+    preflightHeader.className = 'video-preflight-header';
+    const preflightTitle = document.createElement('span');
+    preflightTitle.className = 'video-label';
+    preflightTitle.textContent = getLang().video_preflight || 'Readiness check';
+    const recheckBtn = document.createElement('button');
+    recheckBtn.className = 'video-btn';
+    recheckBtn.textContent = getLang().video_recheck || '↻ Re-check';
+    preflightHeader.appendChild(preflightTitle);
+    preflightHeader.appendChild(recheckBtn);
+    const preflightList = document.createElement('div');
+    preflightList.className = 'video-preflight-list';
+    preflightPanel.appendChild(preflightHeader);
+    preflightPanel.appendChild(preflightList);
+    container.appendChild(preflightPanel);
+
     // Run + status
     const runRow = document.createElement('div');
     runRow.className = 'video-run-row';
@@ -630,6 +672,77 @@ export function setupVideoTab(containerId) {
     runRow.appendChild(status);
     container.appendChild(runRow);
     function setStatus(t) { status.textContent = t; }
+
+    let lastPreflightReady = null;   // null = unknown/not run, true/false otherwise
+    function preflightParams() {
+        return {
+            workflow: wfSelect.value,
+            addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000'),
+            hasImage: !!inputImage,
+            steps: Number(stepsNum._input.value),
+            modelName: modelField._input.value.trim() || undefined,
+            modelNameLow: modelLowField._input.value.trim() || undefined,
+            clipName: clipField._input.value.trim() || undefined,
+            vaeName: vaeField._input.value.trim() || undefined,
+            loraName: loraField._input.value.trim() || undefined,
+            extraLoras: loraStack.filter(l => l.name).map(l => ({ name: l.name, strength: l.strength, target: l.target || 'both' }))
+        };
+    }
+    function renderPreflight(res) {
+        preflightList.innerHTML = '';
+        if (!res) {   // desktop-only / no API — don't block, just note it
+            const d = document.createElement('div');
+            d.className = 'video-preflight-item';
+            d.textContent = getLang().video_preflight_na || 'Readiness check unavailable here.';
+            preflightList.appendChild(d);
+            lastPreflightReady = null; updateRunGate(); return;
+        }
+        for (const c of res.checks || []) {
+            const item = document.createElement('div');
+            item.className = 'video-preflight-item ' + (c.present ? 'ok' : (c.required ? 'bad' : 'warn'));
+            const mark = document.createElement('span');
+            mark.className = 'video-preflight-mark';
+            mark.textContent = c.present ? '✓' : '✗';
+            const txt = document.createElement('span');
+            txt.textContent = c.label + (c.name ? `: ${c.name}` : '');
+            item.appendChild(mark);
+            item.appendChild(txt);
+            preflightList.appendChild(item);
+        }
+        if (res.error) {
+            const d = document.createElement('div');
+            d.className = 'video-preflight-item warn';
+            d.textContent = res.error;
+            preflightList.appendChild(d);
+        }
+        lastPreflightReady = (res.checks && res.checks.length) ? !!res.ready : null;
+        updateRunGate();
+    }
+    function updateRunGate() {
+        if (lastPreflightReady === false) {
+            runBtn.disabled = true;
+            runBtn.classList.add('not-ready');
+            runBtn.textContent = getLang().video_run_blocked || 'Fix red items to animate';
+        } else {
+            runBtn.disabled = running;
+            runBtn.classList.remove('not-ready');
+            runBtn.textContent = getLang().video_run || 'Animate ▶';
+        }
+    }
+    let preflightBusy = false;
+    async function runPreflight() {
+        if (preflightBusy) return;
+        if (!wfSelect.value) { renderPreflight({ checks: [{ label: getLang().video_pf_workflow || 'Workflow selected', present: false, required: true }], ready: false }); return; }
+        preflightBusy = true;
+        recheckBtn.disabled = true;
+        const res = await api.preflight(preflightParams()).catch(() => null);
+        preflightBusy = false;
+        recheckBtn.disabled = false;
+        renderPreflight(res);
+    }
+    recheckBtn.addEventListener('click', runPreflight);
+    triggerPreflight = runPreflight;
+    wfSelect.addEventListener('change', runPreflight);
 
     const progWrap = document.createElement('div');
     progWrap.className = 'video-progress';
@@ -707,6 +820,7 @@ export function setupVideoTab(containerId) {
         if (running) return;
         if (!inputImage) { setStatus(getLang().video_no_image || 'Pick an input image first.'); return; }
         if (!wfSelect.value) { setStatus(getLang().video_no_workflow || 'Import a workflow first.'); return; }
+        if (lastPreflightReady === false) { setStatus(getLang().video_run_blocked || 'Fix the red items in the readiness check first.'); runPreflight(); return; }
         running = true;
         runBtn.disabled = true;
         resultWrap.innerHTML = '';
@@ -935,9 +1049,10 @@ export function setupVideoTab(containerId) {
             console.warn(CAT, 'scenes load failed, using defaults', err);
         }
         await refreshWorkflows();
+        runPreflight();
     })();
 
     return {
-        setInputImage: (src) => { inputImage = src; preview.src = src; }
+        setInputImage: (src) => { inputImage = src; preview.src = src; triggerPreflight(); }
     };
 }

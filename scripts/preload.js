@@ -100,6 +100,7 @@ contextBridge.exposeInMainWorld('api', {
   downloadLoraThumb: async (loraName, apiKey) => ipcRenderer.invoke('lora-thumb-download', loraName, apiKey),
   comfyVideoPing: async (addr) => ipcRenderer.invoke('comfy-video-ping', addr),
   comfyVideoModels: async (addr) => ipcRenderer.invoke('comfy-video-models', addr),
+  comfyVideoPreflight: async (params) => ipcRenderer.invoke('comfy-video-preflight', params),
   comfyVideoCatalog: async () => ipcRenderer.invoke('comfy-video-catalog'),
   comfyVideoDownloadModel: async (params) => ipcRenderer.invoke('comfy-video-download-model', params),
   onComfyVideoDlProgress: (cb) => ipcRenderer.on('comfy-video-dl-progress', (e, p) => cb(p)),
