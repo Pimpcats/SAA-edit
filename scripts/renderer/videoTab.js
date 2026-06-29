@@ -163,6 +163,23 @@ export function setupVideoTab(containerId) {
     for (const r of [wNum, hNum, lenNum, fpsNum, stepsNum, cfgNum, seedNum]) numWrap.appendChild(r);
     container.appendChild(numWrap);
 
+    // ComfyUI address (separate from the A1111 image API — ComfyUI is its own
+    // server, default port 8188).
+    const addrRow = document.createElement('div');
+    addrRow.className = 'video-row';
+    const addrLabel = document.createElement('span');
+    addrLabel.className = 'video-label';
+    addrLabel.textContent = getLang().video_comfy_addr || 'ComfyUI address';
+    const addrInput = document.createElement('input');
+    addrInput.type = 'text';
+    addrInput.className = 'video-text';
+    addrInput.placeholder = '127.0.0.1:8188';
+    addrInput.value = globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8188';
+    addrInput.addEventListener('change', () => { globalThis.globalSettings.video_comfy_addr = addrInput.value.trim(); });
+    addrRow.appendChild(addrLabel);
+    addrRow.appendChild(addrInput);
+    container.appendChild(addrRow);
+
     // Workflow + model files
     const wfRow = document.createElement('div');
     wfRow.className = 'video-row';
@@ -308,7 +325,7 @@ export function setupVideoTab(containerId) {
             clipName: clipField._input.value.trim() || undefined,
             vaeName: vaeField._input.value.trim() || undefined,
             loraName: loraField._input.value.trim() || undefined,
-            addr: globalThis.generate?.api_address?.getValue?.() || globalThis.globalSettings.api_addr
+            addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8188')
         };
 
         const res = await api.run(params).catch(err => ({ ok: false, error: err.message }));

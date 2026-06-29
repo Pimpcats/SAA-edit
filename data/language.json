@@ -16,6 +16,7 @@
         "view_expression": "Expression",
         "view_clothing": "Clothing",
         "video_note": "Animate a generated image with a WAN image-to-video workflow in ComfyUI. A default WAN 2.1 I2V workflow is bundled — fill the model filename fields with the files you downloaded (verify the names). Or Import your own 'Save (API Format)' JSON. Pick a scene/position, then Run.",
+        "video_comfy_addr": "ComfyUI address",
         "video_edit_lists": "✎ Edit scene / position lists",
         "video_edit_title": "Edit scene / position lists",
         "video_edit_add": "+ Add entry",

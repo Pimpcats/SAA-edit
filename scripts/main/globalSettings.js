@@ -107,6 +107,7 @@ const defaultSettings = {
     "floating_buttons_enable": false,
     "auto_save_generated": true,
     "auto_save_dir": "",
+    "video_comfy_addr": "127.0.0.1:8188",
     "video_model_name": "",
     "video_clip_name": "",
     "video_vae_name": "",
