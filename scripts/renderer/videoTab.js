@@ -65,8 +65,17 @@ export function setupVideoTab(containerId) {
     dropHint.className = 'video-drop-hint';
     dropHint.textContent = getLang().video_drop || 'or drop an image here';
     imgBtns.appendChild(dropHint);
+    // Animate preview window (progress + finished animation), to the right.
+    const outBox = document.createElement('div');
+    outBox.className = 'video-outbox';
+    const outLabel = document.createElement('div');
+    outLabel.className = 'video-outbox-label';
+    outLabel.textContent = getLang().video_preview || 'Animation preview';
+    outBox.appendChild(outLabel);
+
     imgRow.appendChild(preview);
     imgRow.appendChild(imgBtns);
+    imgRow.appendChild(outBox);
     container.appendChild(imgRow);
 
     // drag-drop image onto the preview
@@ -173,8 +182,8 @@ export function setupVideoTab(containerId) {
     const addrInput = document.createElement('input');
     addrInput.type = 'text';
     addrInput.className = 'video-text';
-    addrInput.placeholder = '127.0.0.1:8188';
-    addrInput.value = globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8188';
+    addrInput.placeholder = '127.0.0.1:8000';
+    addrInput.value = globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000';
     addrInput.addEventListener('change', () => { globalThis.globalSettings.video_comfy_addr = addrInput.value.trim(); });
     const testBtn = document.createElement('button');
     testBtn.className = 'video-btn';
@@ -183,7 +192,7 @@ export function setupVideoTab(containerId) {
     testStatus.className = 'video-test-status';
     testStatus.textContent = '●';
     testBtn.addEventListener('click', async () => {
-        const addr = addrInput.value.trim() || '127.0.0.1:8188';
+        const addr = addrInput.value.trim() || '127.0.0.1:8000';
         globalThis.globalSettings.video_comfy_addr = addr;
         testStatus.className = 'video-test-status';
         testStatus.textContent = getLang().video_testing || 'Testing…';
@@ -193,6 +202,7 @@ export function setupVideoTab(containerId) {
         if (res && res.ok && res.isComfy) {
             testStatus.className = 'video-test-status ok';
             testStatus.textContent = getLang().video_connected || 'ComfyUI connected ✓';
+            loadModels();   // auto-populate the model dropdowns on connect
         } else if (res && res.ok) {
             testStatus.className = 'video-test-status warn';
             testStatus.textContent = getLang().video_not_comfy || 'Reachable, but not ComfyUI ✗';
@@ -226,23 +236,64 @@ export function setupVideoTab(containerId) {
 
     const modelsWrap = document.createElement('div');
     modelsWrap.className = 'video-models';
-    function fileField(label, ph, settingKey, def) {
+
+    function rebuildOptions(sel, list, selected) {
+        sel.innerHTML = '';
+        const def = document.createElement('option');
+        def.value = ''; def.textContent = getLang().video_default_opt || '(keep workflow default)';
+        sel.appendChild(def);
+        const all = [...new Set([...(selected ? [selected] : []), ...(list || [])])].filter(Boolean);
+        for (const name of all) {
+            const o = document.createElement('option');
+            o.value = name; o.textContent = name;
+            sel.appendChild(o);
+        }
+        sel.value = selected || '';
+    }
+    function selectField(label, settingKey) {
         const row = document.createElement('div');
         row.className = 'video-row';
         const l = document.createElement('span'); l.className = 'video-label'; l.textContent = label;
-        const i = document.createElement('input');
-        i.type = 'text'; i.className = 'video-text'; i.placeholder = ph;
-        i.value = globalThis.globalSettings[settingKey] || def || '';
-        i.addEventListener('change', () => { globalThis.globalSettings[settingKey] = i.value.trim(); });
-        row.appendChild(l); row.appendChild(i);
-        row._input = i;
+        const sel = document.createElement('select');
+        sel.className = 'video-select';
+        rebuildOptions(sel, [], globalThis.globalSettings[settingKey] || '');
+        sel.addEventListener('change', () => { globalThis.globalSettings[settingKey] = sel.value; });
+        row.appendChild(l); row.appendChild(sel);
+        row._input = sel;
         return row;
     }
-    const modelField = fileField(getLang().video_model || 'Diffusion model', 'wan2.x i2v .safetensors', 'video_model_name', '');
-    const clipField = fileField(getLang().video_clip || 'Text encoder (CLIP)', 'umt5_xxl_*.safetensors', 'video_clip_name', '');
-    const vaeField = fileField(getLang().video_vae || 'VAE', 'wan_2.1_vae.safetensors', 'video_vae_name', '');
-    const loraField = fileField(getLang().video_lora || 'Speed LoRA', 'lightx2v / lightning .safetensors', 'video_lora_name', '');
-    for (const r of [modelField, clipField, vaeField, loraField]) modelsWrap.appendChild(r);
+    const modelField = selectField(getLang().video_model || 'Diffusion model', 'video_model_name');
+    const clipField = selectField(getLang().video_clip || 'Text encoder (CLIP)', 'video_clip_name');
+    const vaeField = selectField(getLang().video_vae || 'VAE', 'video_vae_name');
+    const loraField = selectField(getLang().video_lora || 'Speed LoRA', 'video_lora_name');
+
+    const loadModelsRow = document.createElement('div');
+    loadModelsRow.className = 'video-row';
+    const loadModelsBtn = document.createElement('button');
+    loadModelsBtn.className = 'video-btn';
+    loadModelsBtn.textContent = getLang().video_load_models || 'Load model lists from ComfyUI';
+    const modelsStatus = document.createElement('span');
+    modelsStatus.className = 'video-status';
+    loadModelsRow.appendChild(loadModelsBtn);
+    loadModelsRow.appendChild(modelsStatus);
+
+    async function loadModels() {
+        const addr = addrInput.value.trim() || '127.0.0.1:8000';
+        modelsStatus.textContent = getLang().video_loading_models || 'Loading…';
+        const res = globalThis.api?.comfyVideoModels
+            ? await globalThis.api.comfyVideoModels(addr).catch(e => ({ ok: false, error: e.message }))
+            : { ok: false, error: 'desktop only' };
+        if (!res || !res.ok) { modelsStatus.textContent = (getLang().video_models_failed || 'Failed: ') + (res?.error || '?'); return; }
+        rebuildOptions(modelField._input, res.unet, globalThis.globalSettings.video_model_name);
+        rebuildOptions(clipField._input, res.clip, globalThis.globalSettings.video_clip_name);
+        rebuildOptions(vaeField._input, res.vae, globalThis.globalSettings.video_vae_name);
+        rebuildOptions(loraField._input, res.lora, globalThis.globalSettings.video_lora_name);
+        modelsStatus.textContent = (getLang().video_models_loaded || '{0} models, {1} loras')
+            .replace('{0}', res.unet.length).replace('{1}', res.lora.length);
+    }
+    loadModelsBtn.addEventListener('click', loadModels);
+
+    for (const r of [loadModelsRow, modelField, clipField, vaeField, loraField]) modelsWrap.appendChild(r);
     container.appendChild(modelsWrap);
 
     // Run + status
@@ -264,7 +315,7 @@ export function setupVideoTab(containerId) {
     const progBar = document.createElement('div');
     progBar.className = 'video-progress-bar';
     progWrap.appendChild(progBar);
-    container.appendChild(progWrap);
+    outBox.appendChild(progWrap);
     function setProgress(pct) {
         if (pct === null) { progWrap.style.display = 'none'; return; }
         progWrap.style.display = 'block';
@@ -283,7 +334,7 @@ export function setupVideoTab(containerId) {
 
     const resultWrap = document.createElement('div');
     resultWrap.className = 'video-result';
-    container.appendChild(resultWrap);
+    outBox.appendChild(resultWrap);
 
     // ---- Workflow list + import ----
     async function refreshWorkflows(selectName) {
@@ -353,7 +404,7 @@ export function setupVideoTab(containerId) {
             clipName: clipField._input.value.trim() || undefined,
             vaeName: vaeField._input.value.trim() || undefined,
             loraName: loraField._input.value.trim() || undefined,
-            addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8188')
+            addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000')
         };
 
         const res = await api.run(params).catch(err => ({ ok: false, error: err.message }));

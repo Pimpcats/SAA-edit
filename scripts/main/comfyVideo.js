@@ -269,6 +269,47 @@ async function runVideo(params, onProgress) {
     }
 }
 
+// Ask ComfyUI which model files it has, so the UI can offer dropdowns instead
+// of free-text filenames (avoids "value not in list" errors).
+async function objInfoRequired(addr, node) {
+    try {
+        const resp = await fetch(`${comfyBase(addr)}/object_info/${node}`);
+        if (!resp.ok) return null;
+        const j = await resp.json();
+        const def = j?.[node]?.input;
+        return def ? { ...(def.required || {}), ...(def.optional || {}) } : null;
+    } catch {
+        return null;
+    }
+}
+function firstChoiceList(req, field) {
+    const v = req?.[field];
+    return (Array.isArray(v) && Array.isArray(v[0])) ? v[0].filter(x => typeof x === 'string') : [];
+}
+async function getComfyModels(addr) {
+    if (!addr) return { ok: false, error: 'no address' };
+    try {
+        const [unet, gguf, ckpt, clip, vae, lora] = await Promise.all([
+            objInfoRequired(addr, 'UNETLoader'),
+            objInfoRequired(addr, 'UnetLoaderGGUF'),
+            objInfoRequired(addr, 'CheckpointLoaderSimple'),
+            objInfoRequired(addr, 'CLIPLoader'),
+            objInfoRequired(addr, 'VAELoader'),
+            objInfoRequired(addr, 'LoraLoaderModelOnly')
+        ]);
+        const uniq = (a) => [...new Set(a)].sort((x, y) => x.localeCompare(y));
+        return {
+            ok: true,
+            unet: uniq([...firstChoiceList(unet, 'unet_name'), ...firstChoiceList(gguf, 'unet_name'), ...firstChoiceList(ckpt, 'ckpt_name')]),
+            clip: uniq(firstChoiceList(clip, 'clip_name')),
+            vae: uniq(firstChoiceList(vae, 'vae_name')),
+            lora: uniq(firstChoiceList(lora, 'lora_name'))
+        };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
 // Quick reachability check: confirm something answers and that it's ComfyUI.
 async function pingComfy(addr) {
     try {
@@ -285,6 +326,7 @@ async function pingComfy(addr) {
 
 export function setupComfyVideo() {
     ipcMain.handle('comfy-video-ping', async (event, addr) => pingComfy(addr));
+    ipcMain.handle('comfy-video-models', async (event, addr) => getComfyModels(addr));
     ipcMain.handle('comfy-video-list', async () => listWorkflows());
     ipcMain.handle('comfy-video-get', async (event, name) => loadWorkflowGraph(name));
     ipcMain.handle('comfy-video-save', async (event, name, graph) => saveWorkflow(name, graph));
