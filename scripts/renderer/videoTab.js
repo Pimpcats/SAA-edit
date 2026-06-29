@@ -404,10 +404,11 @@ export function setupVideoTab(containerId) {
         row._input = sel;
         return row;
     }
-    const modelField = selectField(getLang().video_model || 'Diffusion model (high noise)', 'video_model_name');
+    const modelField = selectField(getLang().video_model || 'Checkpoint / model (high noise)', 'video_model_name');
     // Second diffusion model for two-model WAN 2.2 (high + low noise). Left on
-    // "(keep workflow default)" for single-model workflows.
-    const modelLowField = selectField(getLang().video_model_low || 'Diffusion model (low noise)', 'video_model_name_low');
+    // "(keep workflow default)" for single-model workflows. Either box can be
+    // changed on its own — the other keeps the workflow default.
+    const modelLowField = selectField(getLang().video_model_low || 'Checkpoint / model (low noise)', 'video_model_name_low');
     const clipField = selectField(getLang().video_clip || 'Text encoder (CLIP)', 'video_clip_name');
     const vaeField = selectField(getLang().video_vae || 'VAE', 'video_vae_name');
     const loraField = selectField(getLang().video_lora || 'Speed LoRA', 'video_lora_name');

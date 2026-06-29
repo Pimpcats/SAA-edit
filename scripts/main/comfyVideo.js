@@ -122,11 +122,30 @@ function patchGraph(graphIn, params, uploadedName) {
         return 0.5;
     };
     const orderedUnets = unetEntries.slice().sort((a, b) => rank(a[1]) - rank(b[1]));
+    const highLoader = orderedUnets.find(([, n]) => rank(n) === 0) || orderedUnets[0];
+    const lowLoader = orderedUnets.find(([, n]) => rank(n) === 1) || orderedUnets[1];
+    // Route a chosen checkpoint to the loader it belongs to. If the FILENAME says
+    // "high"/"low" it goes to that slot (so a "just high" or "just low" checkpoint
+    // always lands correctly, no matter which box it was picked in); otherwise it
+    // falls back to the box's slot. Only the chosen slot is touched — the other
+    // keeps the workflow default, so you can change just one checkpoint.
+    const routeModel = (name, fallbackLoader) => {
+        if (!name) return;
+        const lname = name.toLowerCase();
+        let target = fallbackLoader;
+        if (orderedUnets.length >= 2) {
+            if (lname.includes('high')) target = highLoader;
+            else if (lname.includes('low')) target = lowLoader;
+        }
+        if (target) setModel(target[1], name);
+    };
     if (orderedUnets.length === 1) {
+        // Single-loader workflow: either box swaps the one checkpoint.
         if (params.modelName) setModel(orderedUnets[0][1], params.modelName);
+        else if (params.modelNameLow) setModel(orderedUnets[0][1], params.modelNameLow);
     } else if (orderedUnets.length >= 2) {
-        if (params.modelName) setModel(orderedUnets[0][1], params.modelName);
-        if (params.modelNameLow) setModel(orderedUnets[1][1], params.modelNameLow);
+        routeModel(params.modelName, highLoader);
+        routeModel(params.modelNameLow, lowLoader);
     }
     const loraCount = entries.filter(([, n]) => ctOf(n).includes('lora')).length;
     for (const [, n] of entries) {
