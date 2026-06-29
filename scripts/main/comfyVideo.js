@@ -102,12 +102,17 @@ function patchGraph(graphIn, params, uploadedName) {
         if (negRef && g[negRef]?.inputs && 'text' in g[negRef].inputs && params.negative !== undefined) g[negRef].inputs.text = params.negative;
     }
 
-    // Model / clip / vae / speed-LoRA loaders — let the user point the template
-    // at their downloaded files without editing JSON.
+    // Model / clip / vae / speed-LoRA loaders — let the user point a SINGLE-model
+    // template at their downloaded files without editing JSON. For multi-model
+    // workflows (e.g. WAN 2.2 high+low), the single dropdown would wrongly set
+    // both loaders to the same file, so skip it and keep the template's values.
+    const ctOf = (n) => String(n.class_type || '').toLowerCase();
+    const unetCount = entries.filter(([, n]) => ctOf(n).includes('unetloader') || ctOf(n).includes('checkpointloader')).length;
+    const loraCount = entries.filter(([, n]) => ctOf(n).includes('lora')).length;
     for (const [, n] of entries) {
         if (!n.inputs) continue;
-        const ct = String(n.class_type || '').toLowerCase();
-        if (params.modelName && (ct.includes('unetloader') || ct.includes('checkpointloader'))) {
+        const ct = ctOf(n);
+        if (params.modelName && unetCount === 1 && (ct.includes('unetloader') || ct.includes('checkpointloader'))) {
             if ('unet_name' in n.inputs) n.inputs.unet_name = params.modelName;
             if ('ckpt_name' in n.inputs) n.inputs.ckpt_name = params.modelName;
         }
@@ -118,7 +123,7 @@ function patchGraph(graphIn, params, uploadedName) {
         if (params.vaeName && ct.includes('vaeloader')) {
             if ('vae_name' in n.inputs) n.inputs.vae_name = params.vaeName;
         }
-        if (params.loraName && ct.includes('lora')) {
+        if (params.loraName && loraCount === 1 && ct.includes('lora')) {
             if ('lora_name' in n.inputs) n.inputs.lora_name = params.loraName;
         }
     }
