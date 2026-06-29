@@ -797,11 +797,14 @@ export function setupVideoTab(containerId) {
             runBtn.disabled = true;
             runBtn.classList.add('not-ready');
             runBtn.textContent = getLang().video_run_blocked || 'Fix red items to animate';
-        } else {
-            runBtn.disabled = running;
-            runBtn.classList.remove('not-ready');
-            runBtn.textContent = getLang().video_run || 'Animate ▶';
+            return;
         }
+        runBtn.disabled = false;
+        runBtn.classList.remove('not-ready');
+        const pending = jobQueue.length + (activeJob ? 1 : 0);
+        runBtn.textContent = processing
+            ? (getLang().video_run_queue || '＋ Queue clip ({0} running)').replace('{0}', pending)
+            : (getLang().video_run || 'Animate ▶');
     }
     let preflightBusy = false;
     async function runPreflight() {
@@ -887,73 +890,152 @@ export function setupVideoTab(containerId) {
         return parts.join(', ');
     }
 
+    // ---- Animate queue -----------------------------------------------------
+    // Clicking Animate enqueues a job (a snapshot of the current image/prompt/
+    // position/LoRAs/settings) and a worker processes them one at a time. You can
+    // change the position/settings and queue more while one is running.
     let running = false;
     let timer = null;
-    runBtn.addEventListener('click', async () => {
-        if (running) return;
-        if (!inputImage) { setStatus(getLang().video_no_image || 'Pick an input image first.'); return; }
-        if (!wfSelect.value) { setStatus(getLang().video_no_workflow || 'Import a workflow first.'); return; }
-        if (lastPreflightReady === false) { setStatus(getLang().video_run_blocked || 'Fix the red items in the readiness check first.'); runPreflight(); return; }
-        running = true;
-        runBtn.disabled = true;
-        resultWrap.innerHTML = '';
-        setProgress(0);
-        const seedVal = Number(seedNum._input.value);
-        const seed = (Number.isNaN(seedVal) || seedVal < 0) ? Math.floor(Math.random() * 2 ** 31) : seedVal;
-        const start = Date.now();
-        timer = setInterval(() => setStatus((getLang().video_running || 'Generating… {0}s').replace('{0}', Math.floor((Date.now() - start) / 1000))), 500);
+    const jobQueue = [];
+    let activeJob = null;
+    let processing = false;
+    let jobCounter = 0;
 
-        const params = {
-            workflow: wfSelect.value,
-            image: inputImage,
-            prompt: buildPrompt(),
-            negative: globalThis.globalSettings.video_negative
-                || 'static, still, frozen, motionless, jpeg artifacts, blurry, distorted, deformed, extra limbs, bad anatomy, watermark, text',
-            width: Number(wNum._input.value),
-            height: Number(hNum._input.value),
-            length: Number(lenNum._input.value),
-            fps: Number(fpsNum._input.value),
-            steps: Number(stepsNum._input.value),
-            cfg: Number(cfgNum._input.value),
-            seed,
-            modelName: modelField._input.value.trim() || undefined,
-            modelNameLow: modelLowField._input.value.trim() || undefined,
-            clipName: clipField._input.value.trim() || undefined,
-            vaeName: vaeField._input.value.trim() || undefined,
-            loraName: loraField._input.value.trim() || undefined,
-            extraLoras: loraStack.filter(l => l.name).map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0, target: l.target || 'both' })),
-            addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000')
-        };
+    // Queue panel (shown only when there are pending/running jobs).
+    const queuePanel = document.createElement('div');
+    queuePanel.className = 'video-queue';
+    queuePanel.style.display = 'none';
+    const queueHeader = document.createElement('div');
+    queueHeader.className = 'video-queue-header';
+    const queueTitle = document.createElement('span');
+    queueTitle.className = 'video-label';
+    const clearQueueBtn = document.createElement('button');
+    clearQueueBtn.className = 'video-btn';
+    clearQueueBtn.textContent = getLang().video_queue_clear || 'Clear queue';
+    clearQueueBtn.addEventListener('click', () => { jobQueue.length = 0; updateQueueUI(); });
+    queueHeader.appendChild(queueTitle);
+    queueHeader.appendChild(clearQueueBtn);
+    const queueListEl = document.createElement('div');
+    queueListEl.className = 'video-queue-list';
+    queuePanel.appendChild(queueHeader);
+    queuePanel.appendChild(queueListEl);
+    runRow.after(queuePanel);
 
-        const res = await api.run(params).catch(err => ({ ok: false, error: err.message }));
-        clearInterval(timer);
-        running = false;
-        runBtn.disabled = false;
-        setProgress(null);
+    function jobRow(job, active) {
+        const row = document.createElement('div');
+        row.className = 'video-queue-item' + (active ? ' active' : '');
+        const label = document.createElement('span');
+        label.textContent = (active ? '▶ ' : '• ') + job.label;
+        row.appendChild(label);
+        if (!active) {
+            const x = document.createElement('button');
+            x.className = 'video-editor-del';
+            x.textContent = '✕';
+            x.addEventListener('click', () => {
+                const i = jobQueue.indexOf(job);
+                if (i >= 0) jobQueue.splice(i, 1);
+                updateQueueUI();
+            });
+            row.appendChild(x);
+        }
+        return row;
+    }
+    function updateQueueUI() {
+        const total = jobQueue.length + (activeJob ? 1 : 0);
+        queuePanel.style.display = total ? '' : 'none';
+        queueTitle.textContent = (getLang().video_queue || 'Queue: {0}').replace('{0}', total);
+        queueListEl.innerHTML = '';
+        if (activeJob) queueListEl.appendChild(jobRow(activeJob, true));
+        for (const j of jobQueue) queueListEl.appendChild(jobRow(j, false));
+        updateRunGate();
+    }
+    function renderResult(res, start) {
         if (res && res.ok && res.dataUrl) {
             setStatus((getLang().video_done || 'Done in {0}s').replace('{0}', Math.floor((Date.now() - start) / 1000)));
-            resultWrap.innerHTML = '';
+            const item = document.createElement('div');
+            item.className = 'video-result-item';
             if (res.isImageFormat) {
                 const img = document.createElement('img');
-                img.className = 'video-out';
-                img.src = res.dataUrl;
-                resultWrap.appendChild(img);
+                img.className = 'video-out'; img.src = res.dataUrl;
+                item.appendChild(img);
             } else {
                 const vid = document.createElement('video');
-                vid.className = 'video-out';
-                vid.src = res.dataUrl;
+                vid.className = 'video-out'; vid.src = res.dataUrl;
                 vid.controls = true; vid.loop = true; vid.autoplay = true; vid.muted = true;
-                resultWrap.appendChild(vid);
+                item.appendChild(vid);
             }
             if (res.path) {
                 const p = document.createElement('div');
                 p.className = 'video-saved-path';
                 p.textContent = (getLang().video_saved || 'Saved: {0}').replace('{0}', res.path);
-                resultWrap.appendChild(p);
+                item.appendChild(p);
             }
+            resultWrap.insertBefore(item, resultWrap.firstChild);   // newest on top
+            while (resultWrap.children.length > 6) resultWrap.removeChild(resultWrap.lastChild);
         } else {
             setStatus((getLang().video_error || 'Error: {0}').replace('{0}', res?.error || 'unknown'));
         }
+    }
+    async function processQueue() {
+        if (processing) return;
+        processing = true;
+        updateRunGate();
+        while (jobQueue.length) {
+            activeJob = jobQueue.shift();
+            updateQueueUI();
+            running = true;
+            setProgress(0);
+            const start = Date.now();
+            timer = setInterval(() => setStatus((getLang().video_running_q || 'Generating {0}… {1}s ({2} queued)')
+                .replace('{0}', activeJob.label).replace('{1}', Math.floor((Date.now() - start) / 1000)).replace('{2}', jobQueue.length)), 500);
+            const res = await api.run(activeJob.params).catch(err => ({ ok: false, error: err.message }));
+            clearInterval(timer);
+            running = false;
+            setProgress(null);
+            renderResult(res, start);
+            activeJob = null;
+            updateQueueUI();
+        }
+        processing = false;
+        updateRunGate();
+        setStatus((getLang().video_queue_done || 'Queue finished ✓'));
+    }
+    runBtn.addEventListener('click', () => {
+        if (!inputImage) { setStatus(getLang().video_no_image || 'Pick an input image first.'); return; }
+        if (!wfSelect.value) { setStatus(getLang().video_no_workflow || 'Import a workflow first.'); return; }
+        if (lastPreflightReady === false) { setStatus(getLang().video_run_blocked || 'Fix the red items in the readiness check first.'); runPreflight(); return; }
+        const seedVal = Number(seedNum._input.value);
+        const seed = (Number.isNaN(seedVal) || seedVal < 0) ? Math.floor(Math.random() * 2 ** 31) : seedVal;
+        const posLabel = positionRow._current()?.label || (getLang().video_clip || 'clip');
+        const job = {
+            id: ++jobCounter,
+            label: `${posLabel} #${jobCounter} · seed ${seed}`,
+            params: {
+                workflow: wfSelect.value,
+                image: inputImage,
+                prompt: buildPrompt(),
+                negative: globalThis.globalSettings.video_negative
+                    || 'static, still, frozen, motionless, jpeg artifacts, blurry, distorted, deformed, extra limbs, bad anatomy, watermark, text',
+                width: Number(wNum._input.value),
+                height: Number(hNum._input.value),
+                length: Number(lenNum._input.value),
+                fps: Number(fpsNum._input.value),
+                steps: Number(stepsNum._input.value),
+                cfg: Number(cfgNum._input.value),
+                seed,
+                modelName: modelField._input.value.trim() || undefined,
+                modelNameLow: modelLowField._input.value.trim() || undefined,
+                clipName: clipField._input.value.trim() || undefined,
+                vaeName: vaeField._input.value.trim() || undefined,
+                loraName: loraField._input.value.trim() || undefined,
+                extraLoras: loraStack.filter(l => l.name).map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0, target: l.target || 'both' })),
+                addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000')
+            }
+        };
+        jobQueue.push(job);
+        updateQueueUI();
+        setStatus((getLang().video_queued || 'Queued — {0} in line').replace('{0}', jobQueue.length + (activeJob ? 1 : 0)));
+        if (!processing) processQueue();
     });
 
     // ---- Scene / position list editor ----
