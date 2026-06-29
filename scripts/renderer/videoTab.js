@@ -60,7 +60,7 @@ export function setupVideoTab(containerId) {
     useLastBtn.textContent = getLang().video_use_last || 'Use last image';
     useLastBtn.addEventListener('click', () => {
         const src = document.querySelector('.cg-main-image')?.src || globalThis.generate?.lastThumb;
-        if (src) { inputImage = src; preview.src = src; triggerPreflight(); }
+        if (src) { inputImage = src; preview.src = src; applyImageDims(src); triggerPreflight(); }
         else setStatus(getLang().video_no_image || 'No gallery image yet — generate one first.');
     });
     imgBtns.appendChild(useLastBtn);
@@ -90,7 +90,7 @@ export function setupVideoTab(containerId) {
         const file = e.dataTransfer?.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => { inputImage = reader.result; preview.src = reader.result; triggerPreflight(); };
+        reader.onload = () => { inputImage = reader.result; preview.src = reader.result; applyImageDims(reader.result); triggerPreflight(); };
         reader.readAsDataURL(file);
     });
 
@@ -170,11 +170,11 @@ export function setupVideoTab(containerId) {
     extraRow.className = 'video-row';
     const extraLabel = document.createElement('span');
     extraLabel.className = 'video-label';
-    extraLabel.textContent = getLang().video_extra || 'Extra prompt';
+    extraLabel.textContent = getLang().video_extra || 'Your prompt';
     const extraInput = document.createElement('input');
     extraInput.type = 'text';
     extraInput.className = 'video-text';
-    extraInput.placeholder = getLang().video_extra_ph || 'optional extra motion words';
+    extraInput.placeholder = getLang().video_extra_ph || 'your own prompt — added to the scene/position description';
     extraRow.appendChild(extraLabel);
     extraRow.appendChild(extraInput);
     container.appendChild(extraRow);
@@ -204,6 +204,26 @@ export function setupVideoTab(containerId) {
     const seedNum = num(getLang().video_seed || 'Seed (-1 random)', -1, -1, undefined, 1);
     for (const r of [wNum, hNum, lenNum, fpsNum, stepsNum, cfgNum, seedNum]) numWrap.appendChild(r);
     container.appendChild(numWrap);
+
+    // Match the output W/H to the chosen input image's aspect ratio (snapped to
+    // /16, longer side capped ~832) so a landscape image stays landscape instead
+    // of defaulting to the portrait 480x832.
+    function applyImageDims(src) {
+        try {
+            const img = new Image();
+            img.onload = () => {
+                const w0 = img.naturalWidth, h0 = img.naturalHeight;
+                if (!w0 || !h0) return;
+                const target = 832;
+                const scale = Math.min(1, target / Math.max(w0, h0));
+                const snap = (v) => Math.max(64, Math.round((v * scale) / 16) * 16);
+                wNum._input.value = snap(w0);
+                hNum._input.value = snap(h0);
+                triggerPreflight();
+            };
+            img.src = src;
+        } catch { /* ignore */ }
+    }
 
     // ComfyUI address (separate from the A1111 image API — ComfyUI is its own
     // server, default port 8188).
@@ -380,8 +400,25 @@ export function setupVideoTab(containerId) {
     const addLoraBtn = document.createElement('button');
     addLoraBtn.className = 'video-btn';
     addLoraBtn.textContent = getLang().video_add_lora || '+ Add LoRA';
-    addLoraBtn.addEventListener('click', () => { loraStack.push({ name: '', strength: 1.0, target: 'both', fromPosition: false }); renderLoraStack(); });
+    addLoraBtn.addEventListener('click', () => { loraStack.push({ name: '', strength: 1.0, target: 'both', fromPosition: false }); renderLoraStack(); persistLoraStack(); });
     addLoraRow.appendChild(addLoraBtn);
+    // One-click "AllInOneV2" preset: the exact speed + RoughTwo NSFW stack from
+    // that workflow (lightx2v distill High@3/Low@1.5, RoughTwo High@1/Low@1).
+    const presetBtn = document.createElement('button');
+    presetBtn.className = 'video-btn';
+    presetBtn.textContent = getLang().video_lora_preset || '★ AllInOne preset';
+    presetBtn.title = getLang().video_lora_preset_t || 'Fill the stack with the AllInOneV2 facefuck/blowjob LoRAs';
+    presetBtn.addEventListener('click', () => {
+        loraStack = loraStack.filter(l => l.fromPosition);   // keep position-injected, replace manual
+        loraStack.push(
+            { name: 'Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors', strength: 3.0, target: 'high', fromPosition: false },
+            { name: 'Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors', strength: 1.5, target: 'low', fromPosition: false },
+            { name: 'Wan22_RoughTwo_high_noise_1_lr7e5.safetensors-000003.safetensors', strength: 1.0, target: 'high', fromPosition: false },
+            { name: 'Wan22_RoughTwo_low_noise_1_lr7e5.safetensors-000003.safetensors', strength: 1.0, target: 'low', fromPosition: false }
+        );
+        renderLoraStack(); persistLoraStack(); triggerPreflight();
+    });
+    addLoraRow.appendChild(presetBtn);
     extraLoraWrap.appendChild(addLoraRow);
 
     // Picking a Position injects its LoRA stack (tagged fromPosition), replacing
@@ -1053,6 +1090,6 @@ export function setupVideoTab(containerId) {
     })();
 
     return {
-        setInputImage: (src) => { inputImage = src; preview.src = src; triggerPreflight(); }
+        setInputImage: (src) => { inputImage = src; preview.src = src; applyImageDims(src); triggerPreflight(); }
     };
 }

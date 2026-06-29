@@ -46,5 +46,23 @@
     "subdir": "loras",
     "filename": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
     "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors"
+  },
+  {
+    "label": "Speed LoRA — Wan2.1 I2V 14B lightx2v cfg_step_distill rank64 (AllInOneV2)",
+    "subdir": "loras",
+    "filename": "Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors",
+    "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors"
+  },
+  {
+    "label": "WAN 2.2 I2V high noise (GGUF Q8) — Comfy-Org repackaged",
+    "subdir": "diffusion_models",
+    "filename": "Wan2.2-I2V-A14B-HighNoise-Q8_0.gguf",
+    "url": "https://huggingface.co/QuantStack/Wan2.2-I2V-A14B-GGUF/resolve/main/HighNoise/Wan2.2-I2V-A14B-HighNoise-Q8_0.gguf"
+  },
+  {
+    "label": "WAN 2.2 I2V low noise (GGUF Q8) — Comfy-Org repackaged",
+    "subdir": "diffusion_models",
+    "filename": "Wan2.2-I2V-A14B-LowNoise-Q8_0.gguf",
+    "url": "https://huggingface.co/QuantStack/Wan2.2-I2V-A14B-GGUF/resolve/main/LowNoise/Wan2.2-I2V-A14B-LowNoise-Q8_0.gguf"
   }
 ]

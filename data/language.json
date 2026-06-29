@@ -91,6 +91,8 @@
         "video_preflight_na": "Readiness check unavailable here.",
         "video_run_blocked": "Fix red items to animate",
         "video_pf_workflow": "Workflow selected",
+        "video_lora_preset": "★ AllInOne preset",
+        "video_lora_preset_t": "Fill the stack with the AllInOneV2 facefuck/blowjob LoRAs",
         "video_run": "Animate ▶",
         "video_running": "Generating… {0}s",
         "video_done": "Done in {0}s",
