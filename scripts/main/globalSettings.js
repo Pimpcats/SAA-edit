@@ -117,6 +117,7 @@ const defaultSettings = {
     "video_extra_lora": "",
     "video_extra_lora_strength": 1.0,
     "video_extra_loras": [],
+    "video_positions_folder": "Positions",
     "video_negative": "",
 
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",

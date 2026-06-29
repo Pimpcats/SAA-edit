@@ -156,6 +156,22 @@ export function setupVideoTab(containerId) {
     container.appendChild(motionRow);
     container.appendChild(positionRow);
 
+    // Dedicated Position prompt box: auto-fills with the selected position's
+    // describing prompt and stays editable for this run. buildPrompt() uses this
+    // box's text (so what you see is what's sent).
+    const posPromptRow = document.createElement('div');
+    posPromptRow.className = 'video-row';
+    const posPromptLabel = document.createElement('span');
+    posPromptLabel.className = 'video-label';
+    posPromptLabel.textContent = getLang().video_pos_prompt_label || 'Position prompt (auto-fills)';
+    const posPromptInput = document.createElement('textarea');
+    posPromptInput.className = 'video-text';
+    posPromptInput.rows = 2;
+    posPromptInput.placeholder = getLang().video_pos_prompt_ph || 'pick a position to load its prompt — editable';
+    posPromptRow.appendChild(posPromptLabel);
+    posPromptRow.appendChild(posPromptInput);
+    container.appendChild(posPromptRow);
+
     const editRow = document.createElement('div');
     editRow.className = 'video-row';
     const editBtn = document.createElement('button');
@@ -163,6 +179,21 @@ export function setupVideoTab(containerId) {
     editBtn.textContent = getLang().video_edit_lists || '✎ Edit scene / position lists';
     editBtn.addEventListener('click', openSceneEditor);
     editRow.appendChild(editBtn);
+    // Scan the ComfyUI LoRA folders for position sub-folders and add/refresh
+    // positions from them (auto-assigns the high/low pair found in each folder).
+    const scanBtn = document.createElement('button');
+    scanBtn.className = 'video-btn';
+    scanBtn.textContent = getLang().video_scan_pos || '⟳ Scan LoRA folders → positions';
+    const scanStatus = document.createElement('span');
+    scanStatus.className = 'video-status';
+    scanBtn.addEventListener('click', async () => {
+        if (!loraList.length) { scanStatus.textContent = getLang().video_scan_need || 'Load model lists from ComfyUI first.'; return; }
+        const r = await scanPositionFolders();
+        scanStatus.textContent = (getLang().video_scan_done || 'Found {0} folders → +{1} positions, {2} LoRAs auto-assigned')
+            .replace('{0}', r.categories).replace('{1}', r.added).replace('{2}', r.filled);
+    });
+    editRow.appendChild(scanBtn);
+    editRow.appendChild(scanStatus);
     container.appendChild(editRow);
 
     // Extra prompt
@@ -424,6 +455,7 @@ export function setupVideoTab(containerId) {
     // Picking a Position injects its LoRA stack (tagged fromPosition), replacing
     // any previously position-injected LoRAs but keeping your manual ones.
     positionRow._onSelect = (entry) => {
+        posPromptInput.value = entry ? (entry.prompt || '') : '';
         loraStack = loraStack.filter(l => !l.fromPosition);
         const posLoras = entry && Array.isArray(entry.loras) ? entry.loras : [];
         for (const pl of posLoras) {
@@ -462,8 +494,13 @@ export function setupVideoTab(containerId) {
         rebuildOptions(loraField._input, res.lora, globalThis.globalSettings.video_lora_name);
         loraList = res.lora || [];
         renderLoraStack();   // repopulate the stack's LoRA dropdowns
+        let scanNote = '';
+        if (loraList.length) {
+            const r = await scanPositionFolders();   // auto-pick up any new position folders
+            if (r.added || r.filled) scanNote = ` · +${r.added} pos, ${r.filled} LoRAs`;
+        }
         modelsStatus.textContent = (getLang().video_models_loaded || '{0} models, {1} loras')
-            .replace('{0}', res.unet.length).replace('{1}', res.lora.length);
+            .replace('{0}', res.unet.length).replace('{1}', res.lora.length) + scanNote;
         triggerPreflight();
     }
     loadModelsBtn.addEventListener('click', loadModels);
@@ -840,10 +877,9 @@ export function setupVideoTab(containerId) {
     // real video (counteracts the model's tendency to drift toward a still).
     const MOTION_BASE = 'smooth continuous motion, fluid natural animation, consistent rhythmic movement, video';
     function buildPrompt() {
-        const pos = positionRow._current();
         const mot = motionRow._current();
         const parts = [
-            pos && pos.prompt,
+            posPromptInput.value.trim(),   // position prompt (auto-filled, editable)
             mot && mot.prompt,
             extraInput.value.trim(),
             MOTION_BASE
@@ -928,6 +964,44 @@ export function setupVideoTab(containerId) {
         await api.saveScenes(scenes).catch(() => {});
         motionRow._rebuild();
         positionRow._rebuild();
+    }
+
+    // Scan ComfyUI's LoRA list for sub-folders under the "Positions" parent
+    // (ComfyUI returns lora names with their folder path), and add/refresh a
+    // position for each folder — auto-assigning the high/low LoRA pair inside.
+    async function scanPositionFolders() {
+        const parent = String(globalThis.globalSettings.video_positions_folder || 'Positions').toLowerCase();
+        if (!Array.isArray(scenes.position)) scenes.position = [];
+        const groups = {};
+        for (const entry of loraList) {
+            const parts = String(entry).replace(/\\/g, '/').split('/');
+            const idx = parts.findIndex(p => p.toLowerCase() === parent);
+            if (idx === -1 || parts.length < idx + 3) continue;   // need parent/category/file
+            const category = parts[idx + 1];
+            (groups[category] = groups[category] || []).push(entry);
+        }
+        let added = 0, filled = 0;
+        for (const [category, files] of Object.entries(groups)) {
+            let pos = scenes.position.find(p => p && typeof p === 'object'
+                && String(p.label || '').toLowerCase() === category.toLowerCase());
+            if (!pos) {
+                pos = { label: category, prompt: category, loras: [] };
+                scenes.position.push(pos);
+                added++;
+            }
+            if (normEntry(pos).loras.length === 0) {   // only fill if not already assigned
+                const high = files.find(f => /high/i.test(f));
+                const low = files.find(f => /low/i.test(f));
+                let loras = [];
+                if (high && low) loras = [{ name: high, target: 'high', strength: 1.0 }, { name: low, target: 'low', strength: 1.0 }];
+                else if (files.length === 1) loras = [{ name: files[0], target: 'both', strength: 1.0 }];
+                else if (high) loras = [{ name: high, target: 'high', strength: 1.0 }];
+                else if (low) loras = [{ name: low, target: 'low', strength: 1.0 }];
+                if (loras.length) { pos.loras = loras; delete pos.lora; delete pos.strength; filled++; }
+            }
+        }
+        await persistScenes();
+        return { added, filled, categories: Object.keys(groups).length };
     }
 
     function openSceneEditor() {
