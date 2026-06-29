@@ -286,13 +286,17 @@ async function fetchView(addr, out) {
     return Buffer.from(await resp.arrayBuffer());
 }
 
+function getVideoDir() {
+    const S = getGlobalSettings();
+    const baseDir = (S.auto_save_dir && String(S.auto_save_dir).trim())
+        ? String(S.auto_save_dir).trim()
+        : path.join(app.isPackaged ? path.dirname(app.getPath('exe')) : app.getAppPath(), 'outputs');
+    return path.join(baseDir, 'video');
+}
+
 function saveVideo(buf, filename) {
     try {
-        const S = getGlobalSettings();
-        const baseDir = (S.auto_save_dir && String(S.auto_save_dir).trim())
-            ? String(S.auto_save_dir).trim()
-            : path.join(app.isPackaged ? path.dirname(app.getPath('exe')) : app.getAppPath(), 'outputs');
-        const dir = path.join(baseDir, 'video');
+        const dir = getVideoDir();
         fs.mkdirSync(dir, { recursive: true });
         const out = path.join(dir, `saa_${Date.now()}_${path.basename(filename)}`);
         fs.writeFileSync(out, buf);
@@ -300,6 +304,33 @@ function saveVideo(buf, filename) {
     } catch (err) {
         console.warn(CAT, 'save failed:', err.message);
         return null;
+    }
+}
+
+// List recently-saved videos (newest first) as data URLs so the gallery can be
+// restored across launches. Capped so startup stays quick.
+function listSavedVideos(limit = 40) {
+    try {
+        const dir = getVideoDir();
+        if (!fs.existsSync(dir)) return [];
+        const files = fs.readdirSync(dir)
+            .filter(f => /\.(webp|gif|mp4|webm)$/i.test(f))
+            .map(f => { const p = path.join(dir, f); return { path: p, filename: f, mtime: fs.statSync(p).mtimeMs }; })
+            .sort((a, b) => b.mtime - a.mtime)
+            .slice(0, limit);
+        return files.map(f => {
+            const ext = (f.filename.split('.').pop() || '').toLowerCase();
+            const mime = ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : ext === 'webm' ? 'video/webm' : 'video/mp4';
+            const buf = fs.readFileSync(f.path);
+            return {
+                path: f.path, filename: f.filename, mtime: f.mtime, mime,
+                isImageFormat: mime.startsWith('image/'),
+                dataUrl: `data:${mime};base64,${buf.toString('base64')}`
+            };
+        });
+    } catch (err) {
+        console.warn(CAT, 'list saved videos failed:', err.message);
+        return [];
     }
 }
 
@@ -557,6 +588,7 @@ export function setupComfyVideo() {
     ipcMain.handle('comfy-video-models', async (event, addr) => getComfyModels(addr));
     ipcMain.handle('comfy-video-preflight', async (event, params) => preflight(params));
     ipcMain.handle('comfy-video-interrupt', async (event, addr) => interruptComfy(addr));
+    ipcMain.handle('comfy-video-list-saved', async () => listSavedVideos());
     ipcMain.handle('comfy-video-catalog', async () => loadCatalog());
     ipcMain.handle('comfy-video-download-model', async (event, params) =>
         downloadModel(params, (p) => { try { event.sender.send('comfy-video-dl-progress', p); } catch { /* ignore */ } }));

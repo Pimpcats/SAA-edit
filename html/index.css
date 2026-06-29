@@ -88,8 +88,9 @@ html, body {
     background: rgba(0,0,0,0.2); min-height: 180px;
 }
 .video-outbox-label { font-size: 11px; opacity: 0.6; }
-.video-outbox .video-result { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.video-outbox .video-out { max-width: 100%; max-height: 320px; }
+.video-outbox .video-result { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+/* Main player scales with the window but always keeps aspect (object-fit). */
+.video-outbox .video-out { max-width: 100%; max-height: 65vh; width: auto; height: auto; object-fit: contain; }
 .video-input-preview {
     width: 140px; height: 180px; object-fit: cover;
     border: 1px dashed #777; border-radius: 8px; background: rgba(0,0,0,0.2);
@@ -152,11 +153,16 @@ html, body {
 .video-cancel { padding: 8px 16px; border: none; border-radius: 8px; background: #e74c3c; color: #fff; font-weight: bold; cursor: pointer; }
 .video-cancel:hover { background: #ff5e4d; }
 
-/* Video gallery: thumbnails of finished clips under the main preview */
-.video-gallery { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; border-top: 1px solid #444; padding-top: 6px; }
+/* Video gallery: a horizontal thumbnail strip under the main preview (like the
+   image gallery). Scrolls sideways; never grows the page vertically. */
+.video-gallery {
+    display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 6px;
+    border-top: 1px solid #444; padding-top: 6px;
+    overflow-x: auto; overflow-y: hidden; flex: 0 0 auto;
+}
 .video-gallery:empty { display: none; }
 .video-thumb {
-    width: 72px; height: 72px; object-fit: cover; border-radius: 6px;
+    flex: 0 0 auto; width: 72px; height: 72px; object-fit: cover; border-radius: 6px;
     border: 2px solid transparent; cursor: pointer; background: rgba(0,0,0,0.3);
 }
 .video-thumb:hover { border-color: #4a8be5; }

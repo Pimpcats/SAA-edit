@@ -30,7 +30,8 @@ export function setupVideoTab(containerId) {
         saveScenes: (s) => (globalThis.api?.comfyVideoSaveScenes ? globalThis.api.comfyVideoSaveScenes(s) : Promise.resolve(null)),
         run: (p) => (globalThis.api?.comfyVideoRun ? globalThis.api.comfyVideoRun(p) : Promise.resolve({ ok: false, error: 'desktop only' })),
         preflight: (p) => (globalThis.api?.comfyVideoPreflight ? globalThis.api.comfyVideoPreflight(p) : Promise.resolve(null)),
-        interrupt: (a) => (globalThis.api?.comfyVideoInterrupt ? globalThis.api.comfyVideoInterrupt(a) : Promise.resolve(null))
+        interrupt: (a) => (globalThis.api?.comfyVideoInterrupt ? globalThis.api.comfyVideoInterrupt(a) : Promise.resolve(null)),
+        listSaved: () => (globalThis.api?.comfyVideoListSaved ? globalThis.api.comfyVideoListSaved() : Promise.resolve([]))
     };
 
     let scenes = DEFAULT_SCENES;
@@ -968,6 +969,18 @@ export function setupVideoTab(containerId) {
         videoGallery.insertBefore(thumb, videoGallery.firstChild);   // newest first
         while (videoGallery.children.length > 60) videoGallery.removeChild(videoGallery.lastChild);
     }
+
+    // Restore previously-saved clips into the gallery on startup (newest first).
+    api.listSaved().then((list) => {
+        if (!Array.isArray(list) || !list.length) return;
+        // list is newest-first; add oldest-first so newest ends up at the front.
+        for (const v of list.slice().reverse()) {
+            const entry = { dataUrl: v.dataUrl, path: v.path, isImageFormat: v.isImageFormat, label: v.filename };
+            videoHistory.push(entry);
+            addThumb(entry);
+        }
+        if (videoHistory.length) showInMain(videoHistory[videoHistory.length - 1]);
+    }).catch(() => {});
 
     // ---- Workflow list + import ----
     async function refreshWorkflows(selectName) {
