@@ -15,19 +15,20 @@
         "waving at the camera"
     ],
     "position": [
-        "riding, moving up and down",
-        "bouncing, breasts bouncing",
-        "thrusting",
-        "grinding, hip movement",
-        "doggystyle, thrusting from behind",
-        "cowgirl, riding on top",
-        "missionary, thrusting",
-        "oral, head bobbing",
-        "handjob, stroking motion",
-        "spreading legs",
-        "bending over",
-        "undressing, removing clothes",
-        "breasts jiggling",
-        "swaying hips"
+        { "label": "Riding (cowgirl)", "prompt": "riding on top, cowgirl position, hips moving up and down in a steady rhythm, breasts bouncing", "lora": "", "strength": 0.9 },
+        { "label": "Reverse cowgirl", "prompt": "reverse cowgirl, riding from behind, hips rocking up and down, back arched", "lora": "", "strength": 0.9 },
+        { "label": "Missionary", "prompt": "missionary position, steady thrusting, legs spread, rhythmic motion", "lora": "", "strength": 0.9 },
+        { "label": "Doggystyle", "prompt": "doggystyle, penetration from behind, steady thrusting, hips slapping, breasts swaying", "lora": "", "strength": 0.9 },
+        { "label": "Thrusting", "prompt": "steady rhythmic thrusting, continuous hip motion", "lora": "", "strength": 0.9 },
+        { "label": "Grinding", "prompt": "grinding, slow circular hip movement, close contact", "lora": "", "strength": 0.85 },
+        { "label": "Bouncing", "prompt": "bouncing up and down, breasts bouncing with each motion", "lora": "", "strength": 0.9 },
+        { "label": "Oral (blowjob)", "prompt": "oral sex, head bobbing back and forth in a steady rhythm", "lora": "", "strength": 0.9 },
+        { "label": "Handjob", "prompt": "handjob, stroking motion up and down, steady rhythm", "lora": "", "strength": 0.85 },
+        { "label": "Titjob", "prompt": "breasts pressed together moving up and down, steady rhythm", "lora": "", "strength": 0.85 },
+        { "label": "Spreading legs", "prompt": "slowly spreading legs apart, presenting", "lora": "", "strength": 0.7 },
+        { "label": "Bending over", "prompt": "bending over, hips presented, slight sway", "lora": "", "strength": 0.7 },
+        { "label": "Undressing", "prompt": "slowly undressing, removing clothing, fluid motion", "lora": "", "strength": 0.6 },
+        { "label": "Breasts jiggling", "prompt": "breasts jiggling and swaying naturally", "lora": "", "strength": 0.7 },
+        { "label": "Swaying hips", "prompt": "swaying hips side to side, sensual movement", "lora": "", "strength": 0.7 }
     ]
 }

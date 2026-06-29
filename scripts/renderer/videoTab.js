@@ -33,6 +33,7 @@ export function setupVideoTab(containerId) {
 
     let scenes = DEFAULT_SCENES;
     let inputImage = null;   // data URL of the image to animate
+    let loraList = [];       // last-loaded ComfyUI lora list (for the editor's picker)
 
     // ---- UI ----
     container.innerHTML = '';
@@ -91,7 +92,19 @@ export function setupVideoTab(containerId) {
         reader.readAsDataURL(file);
     });
 
-    // Scene + Position selectors (editable lists, like the view tags)
+    // Scene + Position selectors (editable lists, like the view tags). Each entry
+    // is normalized to {label, prompt, lora, strength}: plain strings (ambient
+    // motions) become label==prompt with no lora; position entries carry a
+    // describing prompt AND an associated LoRA that auto-loads on selection.
+    function normEntry(e) {
+        if (typeof e === 'string') return { label: e, prompt: e, lora: '', strength: 1.0 };
+        return {
+            label: e.label || e.prompt || '',
+            prompt: e.prompt || e.label || '',
+            lora: e.lora || '',
+            strength: (typeof e.strength === 'number') ? e.strength : 1.0
+        };
+    }
     function makeSelectRow(labelText, key) {
         const row = document.createElement('div');
         row.className = 'video-row';
@@ -100,22 +113,27 @@ export function setupVideoTab(containerId) {
         label.textContent = labelText;
         const sel = document.createElement('select');
         sel.className = 'video-select';
+        let entries = [];
         const rebuild = () => {
+            entries = (scenes[key] || []).map(normEntry);
             sel.innerHTML = '';
             const none = document.createElement('option');
             none.value = ''; none.textContent = '(none)';
             sel.appendChild(none);
-            for (const item of (scenes[key] || [])) {
+            entries.forEach((item, i) => {
                 const o = document.createElement('option');
-                o.value = item; o.textContent = item;
+                o.value = String(i); o.textContent = item.label;
                 sel.appendChild(o);
-            }
+            });
         };
         rebuild();
+        const current = () => (sel.value === '' ? null : entries[Number(sel.value)] || null);
+        sel.addEventListener('change', () => { if (row._onSelect) row._onSelect(current()); });
         row.appendChild(label);
         row.appendChild(sel);
         row._rebuild = rebuild;
         row._select = sel;
+        row._current = current;
         return row;
     }
     const motionRow = makeSelectRow(getLang().video_scene || 'Scene / motion', 'motion');
@@ -289,6 +307,23 @@ export function setupVideoTab(containerId) {
     extraLoraRow.appendChild(elSel);
     extraLoraRow.appendChild(elStrength);
 
+    // Picking a Position auto-loads its associated LoRA + strength into the Extra
+    // LoRA slot (the describing prompt is applied separately in buildPrompt).
+    positionRow._onSelect = (entry) => {
+        if (!entry || !entry.lora) return;
+        if (!Array.from(elSel.options).some(o => o.value === entry.lora)) {
+            const o = document.createElement('option');
+            o.value = entry.lora; o.textContent = entry.lora;
+            elSel.appendChild(o);
+        }
+        elSel.value = entry.lora;
+        globalThis.globalSettings.video_extra_lora = entry.lora;
+        if (typeof entry.strength === 'number') {
+            elStrength.value = entry.strength;
+            globalThis.globalSettings.video_extra_lora_strength = entry.strength;
+        }
+    };
+
     const loadModelsRow = document.createElement('div');
     loadModelsRow.className = 'video-row';
     const loadModelsBtn = document.createElement('button');
@@ -312,6 +347,7 @@ export function setupVideoTab(containerId) {
         rebuildOptions(vaeField._input, res.vae, globalThis.globalSettings.video_vae_name);
         rebuildOptions(loraField._input, res.lora, globalThis.globalSettings.video_lora_name);
         rebuildOptions(elSel, res.lora, globalThis.globalSettings.video_extra_lora);
+        loraList = res.lora || [];
         modelsStatus.textContent = (getLang().video_models_loaded || '{0} models, {1} loras')
             .replace('{0}', res.unet.length).replace('{1}', res.lora.length);
     }
@@ -524,11 +560,17 @@ export function setupVideoTab(containerId) {
     });
 
     // ---- Build prompt + run ----
+    // A baseline that's always appended so the clip keeps moving fluidly like a
+    // real video (counteracts the model's tendency to drift toward a still).
+    const MOTION_BASE = 'smooth continuous motion, fluid natural animation, consistent rhythmic movement, video';
     function buildPrompt() {
+        const pos = positionRow._current();
+        const mot = motionRow._current();
         const parts = [
-            motionRow._select.value,
-            positionRow._select.value,
-            extraInput.value.trim()
+            pos && pos.prompt,
+            mot && mot.prompt,
+            extraInput.value.trim(),
+            MOTION_BASE
         ].map(s => (s || '').trim()).filter(Boolean);
         return parts.join(', ');
     }
@@ -552,7 +594,8 @@ export function setupVideoTab(containerId) {
             workflow: wfSelect.value,
             image: inputImage,
             prompt: buildPrompt(),
-            negative: globalThis.globalSettings.video_negative || '',
+            negative: globalThis.globalSettings.video_negative
+                || 'static, still, frozen, motionless, jpeg artifacts, blurry, distorted, deformed, extra limbs, bad anatomy, watermark, text',
             width: Number(wNum._input.value),
             height: Number(hNum._input.value),
             length: Number(lenNum._input.value),
@@ -645,6 +688,26 @@ export function setupVideoTab(containerId) {
         listEl.className = 'video-editor-list';
         editorPopup.appendChild(listEl);
 
+        function loraOptions(sel, selected) {
+            sel.innerHTML = '';
+            const none = document.createElement('option');
+            none.value = ''; none.textContent = getLang().video_no_lora || '(no LoRA)';
+            sel.appendChild(none);
+            const all = [...new Set([...(selected ? [selected] : []), ...loraList])].filter(Boolean);
+            for (const n of all) {
+                const o = document.createElement('option');
+                o.value = n; o.textContent = n;
+                sel.appendChild(o);
+            }
+            sel.value = selected || '';
+        }
+        function mkDel(arr, i) {
+            const del = document.createElement('button');
+            del.className = 'video-editor-del';
+            del.textContent = '✕';
+            del.addEventListener('click', async () => { arr.splice(i, 1); buildRows(); await persistScenes(); });
+            return del;
+        }
         function buildRows() {
             listEl.innerHTML = '';
             if (!Array.isArray(scenes[cat])) scenes[cat] = [];
@@ -652,17 +715,43 @@ export function setupVideoTab(containerId) {
             for (let i = 0; i < arr.length; i++) {
                 const row = document.createElement('div');
                 row.className = 'video-editor-row';
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'video-text';
-                input.value = arr[i];
-                input.addEventListener('change', async () => { arr[i] = input.value.trim(); await persistScenes(); });
-                const del = document.createElement('button');
-                del.className = 'video-editor-del';
-                del.textContent = '✕';
-                del.addEventListener('click', async () => { arr.splice(i, 1); buildRows(); await persistScenes(); });
-                row.appendChild(input);
-                row.appendChild(del);
+                if (cat === 'position') {
+                    // Position entries are objects: label, describing prompt, LoRA, strength.
+                    let e = arr[i];
+                    if (typeof e === 'string') { e = { label: e, prompt: e, lora: '', strength: 1.0 }; arr[i] = e; }
+                    const labelI = document.createElement('input');
+                    labelI.type = 'text'; labelI.className = 'video-text'; labelI.style.maxWidth = '120px';
+                    labelI.placeholder = getLang().video_pos_label || 'name';
+                    labelI.value = e.label || '';
+                    labelI.addEventListener('change', async () => { e.label = labelI.value.trim(); await persistScenes(); });
+                    const promptI = document.createElement('input');
+                    promptI.type = 'text'; promptI.className = 'video-text';
+                    promptI.placeholder = getLang().video_pos_prompt || 'prompt describing the act';
+                    promptI.value = e.prompt || '';
+                    promptI.addEventListener('change', async () => { e.prompt = promptI.value.trim(); await persistScenes(); });
+                    const loraS = document.createElement('select');
+                    loraS.className = 'video-select'; loraS.style.maxWidth = '170px';
+                    loraOptions(loraS, e.lora || '');
+                    loraS.addEventListener('change', async () => { e.lora = loraS.value; await persistScenes(); });
+                    const strI = document.createElement('input');
+                    strI.type = 'number'; strI.step = '0.05'; strI.min = '0'; strI.max = '2'; strI.style.maxWidth = '58px';
+                    strI.title = getLang().video_extra_lora_strength || 'LoRA strength';
+                    strI.value = (typeof e.strength === 'number') ? e.strength : 1.0;
+                    strI.addEventListener('change', async () => { e.strength = Number(strI.value); await persistScenes(); });
+                    row.appendChild(labelI);
+                    row.appendChild(promptI);
+                    row.appendChild(loraS);
+                    row.appendChild(strI);
+                    row.appendChild(mkDel(arr, i));
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'video-text';
+                    input.value = typeof arr[i] === 'string' ? arr[i] : (arr[i].label || '');
+                    input.addEventListener('change', async () => { arr[i] = input.value.trim(); await persistScenes(); });
+                    row.appendChild(input);
+                    row.appendChild(mkDel(arr, i));
+                }
                 listEl.appendChild(row);
             }
         }
@@ -673,7 +762,7 @@ export function setupVideoTab(containerId) {
         addBtn.className = 'video-btn';
         addBtn.textContent = getLang().video_edit_add || '+ Add entry';
         addBtn.addEventListener('click', () => {
-            scenes[cat].push('');
+            scenes[cat].push(cat === 'position' ? { label: '', prompt: '', lora: '', strength: 1.0 } : '');
             buildRows();
             const inputs = listEl.querySelectorAll('input');
             if (inputs.length) inputs[inputs.length - 1].focus();
