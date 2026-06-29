@@ -103,6 +103,7 @@ contextBridge.exposeInMainWorld('api', {
   comfyVideoPreflight: async (params) => ipcRenderer.invoke('comfy-video-preflight', params),
   comfyVideoInterrupt: async (addr) => ipcRenderer.invoke('comfy-video-interrupt', addr),
   comfyVideoListSaved: async () => ipcRenderer.invoke('comfy-video-list-saved'),
+  comfyVideoGetSaved: async (filePath) => ipcRenderer.invoke('comfy-video-get-saved', filePath),
   comfyVideoCatalog: async () => ipcRenderer.invoke('comfy-video-catalog'),
   comfyVideoDownloadModel: async (params) => ipcRenderer.invoke('comfy-video-download-model', params),
   onComfyVideoDlProgress: (cb) => ipcRenderer.on('comfy-video-dl-progress', (e, p) => cb(p)),

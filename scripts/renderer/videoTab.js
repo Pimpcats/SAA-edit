@@ -31,7 +31,8 @@ export function setupVideoTab(containerId) {
         run: (p) => (globalThis.api?.comfyVideoRun ? globalThis.api.comfyVideoRun(p) : Promise.resolve({ ok: false, error: 'desktop only' })),
         preflight: (p) => (globalThis.api?.comfyVideoPreflight ? globalThis.api.comfyVideoPreflight(p) : Promise.resolve(null)),
         interrupt: (a) => (globalThis.api?.comfyVideoInterrupt ? globalThis.api.comfyVideoInterrupt(a) : Promise.resolve(null)),
-        listSaved: () => (globalThis.api?.comfyVideoListSaved ? globalThis.api.comfyVideoListSaved() : Promise.resolve([]))
+        listSaved: () => (globalThis.api?.comfyVideoListSaved ? globalThis.api.comfyVideoListSaved() : Promise.resolve([])),
+        getSaved: (p) => (globalThis.api?.comfyVideoGetSaved ? globalThis.api.comfyVideoGetSaved(p) : Promise.resolve(null))
     };
 
     let scenes = DEFAULT_SCENES;
@@ -925,20 +926,30 @@ export function setupVideoTab(containerId) {
     const videoGallery = document.createElement('div');
     videoGallery.className = 'video-gallery';
     outBox.appendChild(videoGallery);
-    const videoHistory = [];   // {dataUrl, path, isImageFormat, label}
+    const videoHistory = [];   // {dataUrl?, path, isImageFormat, label}
 
-    function showInMain(entry) {
+    // Ensure an entry's full media is loaded (lazily fetched from disk if needed).
+    async function ensureLoaded(entry) {
+        if (entry.dataUrl) return true;
+        if (!entry.path) return false;
+        const r = await api.getSaved(entry.path).catch(() => null);
+        if (r && r.ok) { entry.dataUrl = r.dataUrl; entry.isImageFormat = r.isImageFormat; return true; }
+        return false;
+    }
+
+    async function showInMain(entry) {
+        if (!(await ensureLoaded(entry))) return;
         resultWrap.innerHTML = '';
         let media;
         if (entry.isImageFormat) {
-            media = document.createElement('img');
+            media = document.createElement('img');   // animated webp loops on its own
             media.className = 'video-out';
             media.src = entry.dataUrl;
         } else {
             media = document.createElement('video');
             media.className = 'video-out';
             media.src = entry.dataUrl;
-            media.controls = true; media.loop = true; media.autoplay = true; media.muted = true;
+            media.controls = true; media.loop = true; media.autoplay = true; media.muted = true;   // endless loop
         }
         resultWrap.appendChild(media);
         if (entry.path) {
@@ -947,39 +958,69 @@ export function setupVideoTab(containerId) {
             p.textContent = (getLang().video_saved || 'Saved: {0}').replace('{0}', entry.path);
             resultWrap.appendChild(p);
         }
-        // highlight the matching thumbnail
         for (const t of videoGallery.children) t.classList.toggle('selected', t._entry === entry);
     }
-    function addThumb(entry) {
-        let thumb;
+
+    // Draw a STATIC poster (first frame) of an entry into a 72x72 canvas thumb.
+    function paintPoster(canvas, entry) {
+        const ctx = canvas.getContext('2d');
+        const cover = (src, sw, sh) => {
+            if (!sw || !sh) return;
+            const side = 72, scale = Math.max(side / sw, side / sh);
+            const w = sw * scale, h = sh * scale;
+            ctx.clearRect(0, 0, side, side);
+            try { ctx.drawImage(src, (side - w) / 2, (side - h) / 2, w, h); } catch { /* ignore */ }
+        };
         if (entry.isImageFormat) {
-            thumb = document.createElement('img');
-            thumb.src = entry.dataUrl;
+            const img = new Image();
+            img.onload = () => cover(img, img.naturalWidth, img.naturalHeight);   // first frame of webp
+            img.src = entry.dataUrl;
         } else {
-            thumb = document.createElement('video');
-            thumb.src = entry.dataUrl;
-            thumb.muted = true; thumb.loop = true;
-            thumb.addEventListener('mouseenter', () => { thumb.play().catch(() => {}); });
-            thumb.addEventListener('mouseleave', () => { thumb.pause(); });
+            const v = document.createElement('video');
+            v.muted = true; v.preload = 'metadata'; v.src = entry.dataUrl;
+            v.addEventListener('loadeddata', () => { try { v.currentTime = 0; } catch { /* ignore */ } });
+            v.addEventListener('seeked', () => cover(v, v.videoWidth, v.videoHeight), { once: true });
         }
-        thumb.className = 'video-thumb';
-        thumb.title = entry.label || '';
-        thumb._entry = entry;
-        thumb.addEventListener('click', () => showInMain(entry));
-        videoGallery.insertBefore(thumb, videoGallery.firstChild);   // newest first
-        while (videoGallery.children.length > 60) videoGallery.removeChild(videoGallery.lastChild);
     }
 
-    // Restore previously-saved clips into the gallery on startup (newest first).
+    // Lazily generate a thumbnail's poster only when it scrolls into view.
+    const thumbObserver = ('IntersectionObserver' in window)
+        ? new IntersectionObserver((items) => {
+            for (const it of items) {
+                if (it.isIntersecting && typeof it.target._gen === 'function') {
+                    it.target._gen(); it.target._gen = null;
+                    thumbObserver.unobserve(it.target);
+                }
+            }
+        }, { root: videoGallery, rootMargin: '64px' })
+        : null;
+
+    function addThumb(entry) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 72; canvas.height = 72;
+        canvas.className = 'video-thumb';
+        canvas.title = entry.label || '';
+        canvas._entry = entry;
+        canvas.addEventListener('click', () => showInMain(entry));
+        const gen = () => {
+            if (entry.dataUrl) { paintPoster(canvas, entry); return; }
+            ensureLoaded(entry).then(ok => { if (ok) paintPoster(canvas, entry); });
+        };
+        if (entry.dataUrl || !thumbObserver) gen();   // in-memory clips render now
+        else { canvas._gen = gen; thumbObserver.observe(canvas); }
+        videoGallery.insertBefore(canvas, videoGallery.firstChild);   // newest first
+        while (videoGallery.children.length > 200) videoGallery.removeChild(videoGallery.lastChild);
+    }
+
+    // Restore previously-saved clips into the gallery on startup (metadata only;
+    // posters + full clips load lazily). Newest ends up at the front.
     api.listSaved().then((list) => {
         if (!Array.isArray(list) || !list.length) return;
-        // list is newest-first; add oldest-first so newest ends up at the front.
         for (const v of list.slice().reverse()) {
-            const entry = { dataUrl: v.dataUrl, path: v.path, isImageFormat: v.isImageFormat, label: v.filename };
+            const entry = { path: v.path, isImageFormat: v.isImageFormat, label: v.filename };
             videoHistory.push(entry);
             addThumb(entry);
         }
-        if (videoHistory.length) showInMain(videoHistory[videoHistory.length - 1]);
     }).catch(() => {});
 
     // ---- Workflow list + import ----

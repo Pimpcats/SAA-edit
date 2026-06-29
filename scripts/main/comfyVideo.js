@@ -307,30 +307,45 @@ function saveVideo(buf, filename) {
     }
 }
 
-// List recently-saved videos (newest first) as data URLs so the gallery can be
-// restored across launches. Capped so startup stays quick.
-function listSavedVideos(limit = 40) {
+function mimeForExt(ext) {
+    ext = String(ext || '').toLowerCase();
+    return ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif'
+        : ext === 'webm' ? 'video/webm' : 'video/mp4';
+}
+
+// List recently-saved videos (newest first) as lightweight METADATA only (no
+// file bytes), so startup is instant. The renderer fetches each clip lazily.
+function listSavedVideos(limit = 200) {
     try {
         const dir = getVideoDir();
         if (!fs.existsSync(dir)) return [];
-        const files = fs.readdirSync(dir)
+        return fs.readdirSync(dir)
             .filter(f => /\.(webp|gif|mp4|webm)$/i.test(f))
             .map(f => { const p = path.join(dir, f); return { path: p, filename: f, mtime: fs.statSync(p).mtimeMs }; })
             .sort((a, b) => b.mtime - a.mtime)
-            .slice(0, limit);
-        return files.map(f => {
-            const ext = (f.filename.split('.').pop() || '').toLowerCase();
-            const mime = ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : ext === 'webm' ? 'video/webm' : 'video/mp4';
-            const buf = fs.readFileSync(f.path);
-            return {
-                path: f.path, filename: f.filename, mtime: f.mtime, mime,
-                isImageFormat: mime.startsWith('image/'),
-                dataUrl: `data:${mime};base64,${buf.toString('base64')}`
-            };
-        });
+            .slice(0, limit)
+            .map(f => {
+                const mime = mimeForExt(f.filename.split('.').pop());
+                return { path: f.path, filename: f.filename, mtime: f.mtime, mime, isImageFormat: mime.startsWith('image/') };
+            });
     } catch (err) {
         console.warn(CAT, 'list saved videos failed:', err.message);
         return [];
+    }
+}
+
+// Read ONE saved clip as a data URL, on demand. Restricted to the video folder.
+function getSavedVideo(filePath) {
+    try {
+        const dir = path.resolve(getVideoDir());
+        const resolved = path.resolve(filePath);
+        if (!resolved.startsWith(dir + path.sep)) return { ok: false, error: 'outside video folder' };
+        if (!fs.existsSync(resolved)) return { ok: false, error: 'not found' };
+        const mime = mimeForExt(resolved.split('.').pop());
+        const buf = fs.readFileSync(resolved);
+        return { ok: true, mime, isImageFormat: mime.startsWith('image/'), dataUrl: `data:${mime};base64,${buf.toString('base64')}` };
+    } catch (err) {
+        return { ok: false, error: err.message };
     }
 }
 
@@ -589,6 +604,7 @@ export function setupComfyVideo() {
     ipcMain.handle('comfy-video-preflight', async (event, params) => preflight(params));
     ipcMain.handle('comfy-video-interrupt', async (event, addr) => interruptComfy(addr));
     ipcMain.handle('comfy-video-list-saved', async () => listSavedVideos());
+    ipcMain.handle('comfy-video-get-saved', async (event, filePath) => getSavedVideo(filePath));
     ipcMain.handle('comfy-video-catalog', async () => loadCatalog());
     ipcMain.handle('comfy-video-download-model', async (event, params) =>
         downloadModel(params, (p) => { try { event.sender.send('comfy-video-dl-progress', p); } catch { /* ignore */ } }));
