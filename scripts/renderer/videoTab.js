@@ -915,9 +915,59 @@ export function setupVideoTab(containerId) {
         });
     }
 
-    const resultWrap = document.createElement('div');
+    const resultWrap = document.createElement('div');   // the large MAIN player
     resultWrap.className = 'video-result';
     outBox.appendChild(resultWrap);
+
+    // Video gallery: thumbnails of finished clips. Clicking one plays it in the
+    // main player above (instead of stacking previews and growing the page).
+    const videoGallery = document.createElement('div');
+    videoGallery.className = 'video-gallery';
+    outBox.appendChild(videoGallery);
+    const videoHistory = [];   // {dataUrl, path, isImageFormat, label}
+
+    function showInMain(entry) {
+        resultWrap.innerHTML = '';
+        let media;
+        if (entry.isImageFormat) {
+            media = document.createElement('img');
+            media.className = 'video-out';
+            media.src = entry.dataUrl;
+        } else {
+            media = document.createElement('video');
+            media.className = 'video-out';
+            media.src = entry.dataUrl;
+            media.controls = true; media.loop = true; media.autoplay = true; media.muted = true;
+        }
+        resultWrap.appendChild(media);
+        if (entry.path) {
+            const p = document.createElement('div');
+            p.className = 'video-saved-path';
+            p.textContent = (getLang().video_saved || 'Saved: {0}').replace('{0}', entry.path);
+            resultWrap.appendChild(p);
+        }
+        // highlight the matching thumbnail
+        for (const t of videoGallery.children) t.classList.toggle('selected', t._entry === entry);
+    }
+    function addThumb(entry) {
+        let thumb;
+        if (entry.isImageFormat) {
+            thumb = document.createElement('img');
+            thumb.src = entry.dataUrl;
+        } else {
+            thumb = document.createElement('video');
+            thumb.src = entry.dataUrl;
+            thumb.muted = true; thumb.loop = true;
+            thumb.addEventListener('mouseenter', () => { thumb.play().catch(() => {}); });
+            thumb.addEventListener('mouseleave', () => { thumb.pause(); });
+        }
+        thumb.className = 'video-thumb';
+        thumb.title = entry.label || '';
+        thumb._entry = entry;
+        thumb.addEventListener('click', () => showInMain(entry));
+        videoGallery.insertBefore(thumb, videoGallery.firstChild);   // newest first
+        while (videoGallery.children.length > 60) videoGallery.removeChild(videoGallery.lastChild);
+    }
 
     // ---- Workflow list + import ----
     async function refreshWorkflows(selectName) {
@@ -1024,29 +1074,13 @@ export function setupVideoTab(containerId) {
         for (const j of jobQueue) queueListEl.appendChild(jobRow(j, false));
         updateRunGate();
     }
-    function renderResult(res, start) {
+    function renderResult(res, start, label) {
         if (res && res.ok && res.dataUrl) {
             setStatus((getLang().video_done || 'Done in {0}s').replace('{0}', Math.floor((Date.now() - start) / 1000)));
-            const item = document.createElement('div');
-            item.className = 'video-result-item';
-            if (res.isImageFormat) {
-                const img = document.createElement('img');
-                img.className = 'video-out'; img.src = res.dataUrl;
-                item.appendChild(img);
-            } else {
-                const vid = document.createElement('video');
-                vid.className = 'video-out'; vid.src = res.dataUrl;
-                vid.controls = true; vid.loop = true; vid.autoplay = true; vid.muted = true;
-                item.appendChild(vid);
-            }
-            if (res.path) {
-                const p = document.createElement('div');
-                p.className = 'video-saved-path';
-                p.textContent = (getLang().video_saved || 'Saved: {0}').replace('{0}', res.path);
-                item.appendChild(p);
-            }
-            resultWrap.insertBefore(item, resultWrap.firstChild);   // newest on top
-            while (resultWrap.children.length > 6) resultWrap.removeChild(resultWrap.lastChild);
+            const entry = { dataUrl: res.dataUrl, path: res.path, isImageFormat: res.isImageFormat, label: label || '' };
+            videoHistory.push(entry);
+            addThumb(entry);        // add a thumbnail to the gallery
+            showInMain(entry);      // play the newest in the single main player
         } else {
             setStatus((getLang().video_error || 'Error: {0}').replace('{0}', res?.error || 'unknown'));
         }
@@ -1069,7 +1103,7 @@ export function setupVideoTab(containerId) {
             setProgress(null);
             clearLivePreview();
             if (res && res.error === 'cancelled') setStatus(getLang().video_stopped || 'Stopped ■');
-            else renderResult(res, start);
+            else renderResult(res, start, activeJob.label);
             activeJob = null;
             updateQueueUI();
         }
