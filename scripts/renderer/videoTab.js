@@ -32,7 +32,8 @@ export function setupVideoTab(containerId) {
         preflight: (p) => (globalThis.api?.comfyVideoPreflight ? globalThis.api.comfyVideoPreflight(p) : Promise.resolve(null)),
         interrupt: (a) => (globalThis.api?.comfyVideoInterrupt ? globalThis.api.comfyVideoInterrupt(a) : Promise.resolve(null)),
         listSaved: () => (globalThis.api?.comfyVideoListSaved ? globalThis.api.comfyVideoListSaved() : Promise.resolve([])),
-        getSaved: (p) => (globalThis.api?.comfyVideoGetSaved ? globalThis.api.comfyVideoGetSaved(p) : Promise.resolve(null))
+        getSaved: (p) => (globalThis.api?.comfyVideoGetSaved ? globalThis.api.comfyVideoGetSaved(p) : Promise.resolve(null)),
+        getMeta: (p) => (globalThis.api?.comfyVideoGetMeta ? globalThis.api.comfyVideoGetMeta(p) : Promise.resolve(null))
     };
 
     let scenes = DEFAULT_SCENES;
@@ -927,6 +928,7 @@ export function setupVideoTab(containerId) {
     videoGallery.className = 'video-gallery';
     outBox.appendChild(videoGallery);
     const videoHistory = [];   // {dataUrl?, path, isImageFormat, label}
+    let selectedEntry = null;  // the clip currently shown in the main player
 
     // Ensure an entry's full media is loaded (lazily fetched from disk if needed).
     async function ensureLoaded(entry) {
@@ -959,6 +961,8 @@ export function setupVideoTab(containerId) {
             resultWrap.appendChild(p);
         }
         for (const t of videoGallery.children) t.classList.toggle('selected', t._entry === entry);
+        selectedEntry = entry;
+        if (typeof updateSendButtons === 'function') updateSendButtons();
     }
 
     // Draw a STATIC poster (first frame) of an entry into a 72x72 canvas thumb.
@@ -1011,6 +1015,76 @@ export function setupVideoTab(containerId) {
         videoGallery.insertBefore(canvas, videoGallery.firstChild);   // newest first
         while (videoGallery.children.length > 200) videoGallery.removeChild(videoGallery.lastChild);
     }
+
+    // "Send settings" toolbar: replicate the selected clip's generation. One
+    // button keeps your current input image, the other also loads the saved one.
+    const sendToolbar = document.createElement('div');
+    sendToolbar.className = 'video-row';
+    sendToolbar.style.display = 'none';
+    const sendSetBtn = document.createElement('button');
+    sendSetBtn.className = 'video-btn';
+    sendSetBtn.textContent = getLang().video_send_settings || '⤓ Send settings (keep my image)';
+    const sendAllBtn = document.createElement('button');
+    sendAllBtn.className = 'video-btn';
+    sendAllBtn.textContent = getLang().video_send_all || '⤓ Send settings + image';
+    const sendStatus = document.createElement('span');
+    sendStatus.className = 'video-status';
+    sendToolbar.appendChild(sendSetBtn);
+    sendToolbar.appendChild(sendAllBtn);
+    sendToolbar.appendChild(sendStatus);
+    outBox.insertBefore(sendToolbar, videoGallery);
+    function updateSendButtons() { sendToolbar.style.display = (selectedEntry && selectedEntry.path) ? '' : 'none'; }
+
+    function setSelectValue(sel, val) {
+        if (val === undefined || val === null) return;
+        if (val && !Array.from(sel.options).some(o => o.value === val)) {
+            const o = document.createElement('option'); o.value = val; o.textContent = val; sel.appendChild(o);
+        }
+        sel.value = val || '';
+    }
+    function setRowByLabel(row, label, settingKey) {
+        const sel = row._select;
+        let matched = '';
+        sel.value = '';
+        if (label) for (const o of sel.options) { if (o.textContent === label) { sel.value = o.value; matched = label; break; } }
+        if (settingKey) globalThis.globalSettings[settingKey] = matched;
+    }
+    function applySavedSettings(meta, useImage) {
+        const S = globalThis.globalSettings;
+        const setNum = (row, v, key) => { if (v !== undefined && v !== null && v !== '') { row._input.value = v; if (key) S[key] = Number(v); } };
+        setNum(wNum, meta.width, 'video_width'); setNum(hNum, meta.height, 'video_height');
+        setNum(lenNum, meta.length, 'video_frames'); setNum(fpsNum, meta.fps, 'video_fps');
+        setNum(stepsNum, meta.steps, 'video_steps'); setNum(cfgNum, meta.cfg, 'video_cfg');
+        setNum(seedNum, meta.seed, 'video_seed');
+        if (meta.negative !== undefined) S.video_negative = meta.negative;
+        if (meta.workflow) { setSelectValue(wfSelect, meta.workflow); S.video_workflow_name = meta.workflow; }
+        setRowByLabel(positionRow, meta.uiPosition || '', 'video_position');
+        setRowByLabel(motionRow, meta.uiMotion || '', 'video_motion');
+        posPromptInput.value = (meta.uiPosPrompt !== undefined && meta.uiPosPrompt !== '') ? meta.uiPosPrompt : (meta.prompt || '');
+        S.video_pos_prompt = posPromptInput.value;
+        if (meta.uiExtra !== undefined) { extraInput.value = meta.uiExtra; S.video_extra_prompt = meta.uiExtra; }
+        const setModel = (field, val, key) => { setSelectValue(field._input, val || ''); S[key] = val || ''; };
+        setModel(modelField, meta.modelName, 'video_model_name');
+        setModel(modelLowField, meta.modelNameLow, 'video_model_name_low');
+        setModel(clipField, meta.clipName, 'video_clip_name');
+        setModel(vaeField, meta.vaeName, 'video_vae_name');
+        setModel(loraField, meta.loraName, 'video_lora_name');
+        if (Array.isArray(meta.extraLoras)) {
+            loraStack = meta.extraLoras.map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0, target: l.target || 'both', fromPosition: false }));
+            renderLoraStack(); persistLoraStack();
+        }
+        if (useImage && meta.image) { inputImage = meta.image; preview.src = meta.image; applyImageDims(meta.image); }
+        triggerPreflight();
+    }
+    async function doSend(useImage) {
+        if (!selectedEntry || !selectedEntry.path) { sendStatus.textContent = getLang().video_send_pick || 'Select a clip first.'; return; }
+        const meta = await api.getMeta(selectedEntry.path).catch(() => null);
+        if (!meta) { sendStatus.textContent = getLang().video_no_meta || 'No saved settings for this clip.'; return; }
+        applySavedSettings(meta, useImage);
+        sendStatus.textContent = useImage ? (getLang().video_loaded_all || 'Loaded settings + image ✓') : (getLang().video_loaded_set || 'Loaded settings ✓');
+    }
+    sendSetBtn.addEventListener('click', () => doSend(false));
+    sendAllBtn.addEventListener('click', () => doSend(true));
 
     // Restore previously-saved clips into the gallery on startup (metadata only;
     // posters + full clips load lazily). Newest ends up at the front.
@@ -1203,7 +1277,12 @@ export function setupVideoTab(containerId) {
                 vaeName: vaeField._input.value.trim() || undefined,
                 loraName: loraField._input.value.trim() || undefined,
                 extraLoras: loraStack.filter(l => l.name).map(l => ({ name: l.name, strength: (typeof l.strength === 'number') ? l.strength : 1.0, target: l.target || 'both' })),
-                addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000')
+                addr: (addrInput.value.trim() || globalThis.globalSettings.video_comfy_addr || '127.0.0.1:8000'),
+                // UI components saved for replication (ignored by the patcher).
+                uiPosition: positionRow._current()?.label || '',
+                uiMotion: motionRow._current()?.label || '',
+                uiPosPrompt: posPromptInput.value,
+                uiExtra: extraInput.value
             }
         };
         jobQueue.push(job);

@@ -326,11 +326,50 @@ function listSavedVideos(limit = 200) {
             .slice(0, limit)
             .map(f => {
                 const mime = mimeForExt(f.filename.split('.').pop());
-                return { path: f.path, filename: f.filename, mtime: f.mtime, mime, isImageFormat: mime.startsWith('image/') };
+                return {
+                    path: f.path, filename: f.filename, mtime: f.mtime, mime,
+                    isImageFormat: mime.startsWith('image/'),
+                    hasMeta: fs.existsSync(f.path + '.saa.json')
+                };
             });
     } catch (err) {
         console.warn(CAT, 'list saved videos failed:', err.message);
         return [];
+    }
+}
+
+// Write a sidecar JSON next to a saved clip recording every setting used, so the
+// gallery can reload it later to replicate that exact generation.
+function saveVideoMeta(videoPath, params) {
+    try {
+        const meta = {
+            prompt: params.prompt, negative: params.negative,
+            width: params.width, height: params.height, length: params.length,
+            fps: params.fps, steps: params.steps, cfg: params.cfg, seed: params.seed,
+            modelName: params.modelName, modelNameLow: params.modelNameLow,
+            clipName: params.clipName, vaeName: params.vaeName, loraName: params.loraName,
+            extraLoras: params.extraLoras, workflow: params.workflow, addr: params.addr,
+            uiPosition: params.uiPosition, uiMotion: params.uiMotion,
+            uiPosPrompt: params.uiPosPrompt, uiExtra: params.uiExtra,
+            image: params.image
+        };
+        fs.writeFileSync(videoPath + '.saa.json', JSON.stringify(meta));
+    } catch (err) {
+        console.warn(CAT, 'meta save failed:', err.message);
+    }
+}
+
+// Read a clip's sidecar settings (restricted to the video folder).
+function getSavedMeta(videoPath) {
+    try {
+        const dir = path.resolve(getVideoDir());
+        const resolved = path.resolve(videoPath);
+        if (!resolved.startsWith(dir + path.sep)) return null;
+        const metaPath = resolved + '.saa.json';
+        if (!fs.existsSync(metaPath)) return null;
+        return JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+    } catch {
+        return null;
     }
 }
 
@@ -424,6 +463,7 @@ async function runVideo(params, onProgress) {
                 : ext === 'webm' ? 'video/webm'
                     : 'video/mp4';
         const savedPath = saveVideo(buf, out.filename);
+        if (savedPath) saveVideoMeta(savedPath, params);
         return {
             ok: true,
             isImageFormat: mime.startsWith('image/'),
@@ -605,6 +645,7 @@ export function setupComfyVideo() {
     ipcMain.handle('comfy-video-interrupt', async (event, addr) => interruptComfy(addr));
     ipcMain.handle('comfy-video-list-saved', async () => listSavedVideos());
     ipcMain.handle('comfy-video-get-saved', async (event, filePath) => getSavedVideo(filePath));
+    ipcMain.handle('comfy-video-get-meta', async (event, filePath) => getSavedMeta(filePath));
     ipcMain.handle('comfy-video-catalog', async () => loadCatalog());
     ipcMain.handle('comfy-video-download-model', async (event, params) =>
         downloadModel(params, (p) => { try { event.sender.send('comfy-video-dl-progress', p); } catch { /* ignore */ } }));
