@@ -35,7 +35,7 @@
         { "label": "Cumshot", "prompt": "ejaculation, cumshot, cum spurting out, climax, dripping", "lora": "", "strength": 0.9 },
         { "label": "Deepthroat", "prompt": "deepthroat, oral sex, head bobbing all the way down, throat penetration, steady rhythm", "lora": "", "strength": 0.9 },
         { "label": "Double blowjob (2girls)", "prompt": "two girls giving a blowjob together, both heads bobbing, licking and sucking, steady rhythm", "lora": "", "strength": 0.9 },
-        { "label": "Face Fuck", "prompt": "rough face fucking, deep fast thrusting into the mouth, rhythmic motion", "lora": "", "strength": 0.9 },
+        { "label": "Face Fuck", "prompt": "rough face fucking, deep fast thrusting into the mouth, rhythmic motion", "loras": [ { "name": "Wan22_ThroatV3_high.safetensors", "target": "high", "strength": 1.0 }, { "name": "Wan22_ThroatV3_low.safetensors", "target": "low", "strength": 1.0 } ] },
         { "label": "Invisible Grope", "prompt": "invisible hands groping and fondling the breasts, squeezing, jiggling motion", "lora": "", "strength": 0.85 },
         { "label": "male masturbation", "prompt": "male masturbation, stroking the penis up and down, steady rhythm", "lora": "", "strength": 0.85 },
         { "label": "POV Anal reverse cowgirl", "prompt": "POV, reverse cowgirl anal, riding from behind, hips bouncing up and down, viewed from below", "lora": "", "strength": 0.9 },
