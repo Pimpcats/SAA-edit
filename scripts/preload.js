@@ -115,6 +115,10 @@ contextBridge.exposeInMainWorld('api', {
   comfyVideoSaveScenes: async (scenes) => ipcRenderer.invoke('comfy-video-save-scenes', scenes),
   comfyVideoRun: async (params) => ipcRenderer.invoke('comfy-video-run', params),
   onComfyVideoProgress: (cb) => ipcRenderer.on('comfy-video-progress', (e, p) => cb(p)),
+  // Local backend server launcher (start ComfyUI / A1111 headlessly)
+  serverLaunch: async (id, opts) => ipcRenderer.invoke('server-launch', id, opts),
+  serverStop: async (id) => ipcRenderer.invoke('server-stop', id),
+  serverStatus: async (id) => ipcRenderer.invoke('server-status', id),
   setWallpaper: async (dataUrl) => ipcRenderer.invoke('set-wallpaper', dataUrl),
   saveGeneratedImage: async (dataUrl, filename, dir) => ipcRenderer.invoke('save-generated-image', dataUrl, filename, dir),
   getDefaultSaveDir: async () => ipcRenderer.invoke('get-default-save-dir'),

@@ -24,6 +24,7 @@ import { setupImageSave } from './scripts/main/imageSave.js';
 import { setupComfyVideo } from './scripts/main/comfyVideo.js';
 import { setupWildcardsHandlers } from './scripts/main/wildCards.js';
 import { setupTagger } from './scripts/main/imageTagger.js';
+import { setupServerLauncher, autoStartServers, stopAllServers } from './scripts/main/serverLauncher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,6 +93,7 @@ async function initializeApp() {
   setupWallpaper();
   setupImageSave();
   setupComfyVideo();
+  setupServerLauncher();
 
   // Ensure wildcards list are set up before tag auto-complete
   setupWildcardsHandlers();
@@ -105,6 +107,10 @@ async function initializeApp() {
   if (downloadSuccess && cacheSuccess && tacSuccess) {   
     createWindow();
     mainWindow.setTitle(`Wai Character Select SAA ${version}`);
+
+    // Optionally launch the local inference servers (ComfyUI / A1111) headlessly
+    // so the app can drive them without the user starting them by hand.
+    autoStartServers(SETTINGS);
 
     app.on('activate', function () {
       // On macOS it's common to re-create a window in the app when the
@@ -148,7 +154,15 @@ app.on('window-all-closed', function () {
   // close the WebSocket server
   closeWebSocketServer();
 
+  // shut down any backend servers this app launched (no orphan processes)
+  stopAllServers();
+
   app.quit()
+})
+
+// Belt-and-suspenders: also kill child servers if the app quits another way.
+app.on('before-quit', function () {
+  stopAllServers();
 })
 
 

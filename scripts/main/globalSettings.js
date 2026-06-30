@@ -23,6 +23,17 @@ const defaultSettings = {
     "webui_auth" : "user:pass",
     "webui_auth_enable" : "OFF",
 
+    // Local backend server launcher: point these at your existing launch
+    // scripts (e.g. ComfyUI run_nvidia_gpu.bat, A1111 webui-user.bat). The app
+    // starts the server only — it never opens a browser page. For A1111 make
+    // sure your bat has --api and NOT --autolaunch.
+    "comfy_exe_path": "",
+    "comfy_exe_args": "",
+    "comfy_exe_autostart": false,
+    "webui_exe_path": "",
+    "webui_exe_args": "",
+    "webui_exe_autostart": false,
+
     "model_filter": true,
     "model_filter_keyword": "",
     "search_modelinsubfolder": true,
