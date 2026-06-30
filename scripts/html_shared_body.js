@@ -410,7 +410,7 @@ export const sharedBodyHTML = `
               <div></div>
               <div></div>
               <div class="local-servers-header-span">
-                <span id="local-servers-span">Local Servers (ComfyUI / A1111)</span>
+                <span id="local-servers-span">A1111 &amp; Comfy path</span>
                 <img id="local-servers-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
               </div>
             </div>
