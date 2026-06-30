@@ -79,6 +79,7 @@ html, body {
 
 /* Local Servers section: scroll if the content is taller than the viewport */
 .local-servers-main.collapsed { display: none; }
+.prompt-collapse-main.collapsed { display: none; }
 .local-servers-main {
     max-height: 70vh;
     overflow-y: auto;

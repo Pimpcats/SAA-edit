@@ -285,16 +285,28 @@ export const sharedBodyHTML = `
             </div>
           </div>
           
-          <div id="prompt-text-container">
-            <div class="prompt-character prompt-segment"></div>
-            <div class="prompt-action prompt-segment"></div>
-            <div class="prompt-background prompt-segment"></div>
-            <div class="prompt-common">common</div>
-            <div class="prompt-positive">positive</div>
-            <div class="prompt-positive-right">positive-right</div>
-            <div class="prompt-negative">negative</div>
-            <div class="prompt-ai">negative</div>
-            <div class="prompt-exclude">exclude</div>
+          <div class="prompt-collapse-container">
+            <div class="prompt-collapse-header">
+              <div></div>
+              <div></div>
+              <div class="prompt-collapse-header-span">
+                <span id="prompt-collapse-span">Prompts</span>
+                <img id="prompt-collapse-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="prompt-collapse-main">
+              <div id="prompt-text-container">
+                <div class="prompt-character prompt-segment"></div>
+                <div class="prompt-action prompt-segment"></div>
+                <div class="prompt-background prompt-segment"></div>
+                <div class="prompt-common">common</div>
+                <div class="prompt-positive">positive</div>
+                <div class="prompt-positive-right">positive-right</div>
+                <div class="prompt-negative">negative</div>
+                <div class="prompt-ai">negative</div>
+                <div class="prompt-exclude">exclude</div>
+              </div>
+            </div>
           </div>
 
           <div class="jsonlist-container">

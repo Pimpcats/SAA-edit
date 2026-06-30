@@ -140,6 +140,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         loraLibrary: setupCollapsed('lora-library', true),
         videoTab: setupCollapsed('video-tab', true),
         localServers: setupCollapsed('local-servers', false),
+        promptArea: setupCollapsed('prompt-collapse', false),
     }
 }
 
