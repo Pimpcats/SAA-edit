@@ -1,11 +1,11 @@
 {
   "1": {
-    "class_type": "UnetLoaderGGUF",
-    "inputs": { "unet_name": "smoothMixWan2214BI2V_i2vV20High.gguf" }
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "smoothMixWan2214BI2V_i2vV20High.safetensors", "weight_dtype": "default" }
   },
   "2": {
-    "class_type": "UnetLoaderGGUF",
-    "inputs": { "unet_name": "smoothMixWan2214BI2V_i2vV20Low.gguf" }
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "smoothMixWan2214BI2V_i2vV20Low.safetensors", "weight_dtype": "default" }
   },
   "3": {
     "class_type": "CLIPLoader",
