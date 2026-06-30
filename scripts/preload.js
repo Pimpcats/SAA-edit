@@ -119,6 +119,7 @@ contextBridge.exposeInMainWorld('api', {
   serverLaunch: async (id, opts) => ipcRenderer.invoke('server-launch', id, opts),
   serverStop: async (id) => ipcRenderer.invoke('server-stop', id),
   serverStatus: async (id) => ipcRenderer.invoke('server-status', id),
+  serverProbe: async (id, addr) => ipcRenderer.invoke('server-probe', id, addr),
   setWallpaper: async (dataUrl) => ipcRenderer.invoke('set-wallpaper', dataUrl),
   saveGeneratedImage: async (dataUrl, filename, dir) => ipcRenderer.invoke('save-generated-image', dataUrl, filename, dir),
   getDefaultSaveDir: async () => ipcRenderer.invoke('get-default-save-dir'),

@@ -32,6 +32,7 @@ import { setupBackgroundsEditor } from './renderer/backgroundsEditor.js';
 import { setupCharacterEditor } from './renderer/characterEditor.js';
 import { setupLoraLibrary } from './renderer/loraLibrary.js';
 import { setupVideoTab } from './renderer/videoTab.js';
+import { setupServerStatusIndicator } from './renderer/serverStatusIndicator.js';
 import { setupCharacterSwap } from './renderer/characterSwap.js';
 import { setupMultiCharEmphasisList } from './renderer/multiCharEmphasis.js';
 import { setupBarsMenu } from './renderer/barsMenu.js';
@@ -515,6 +516,9 @@ async function init(){
         // LoRA library browser (civitai)
         globalThis.loraLibrary = setupLoraLibrary('lora-library-main');
         globalThis.videoTab = setupVideoTab('video-tab-main');
+
+        // Always-visible "Comfy Ready" / "A1111 Ready" status badges
+        globalThis.serverStatusIndicator = setupServerStatusIndicator();
 
         // Character slot swap
         globalThis.characterSwap = setupCharacterSwap('character-swap-row');

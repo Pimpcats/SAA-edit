@@ -157,10 +157,22 @@ async function startBackend(id, opts = {}) {
     return { ...res, ready };
 }
 
+// Lightweight readiness check for the status indicator: is the API answering?
+// `ready` reflects actual reachability (green = usable now), independent of
+// whether THIS app launched the process — so a server you started by hand still
+// shows ready. `running` means this app owns the process.
+async function probeBackend(id, addr) {
+    const meta = BACKENDS[id] || { probe: '/' };
+    const url = probeUrl(addr, meta.probe);
+    const ready = url ? await probeOnce(url, 3000) : false;
+    return { running: isAlive(id), ready };
+}
+
 export function setupServerLauncher() {
     ipcMain.handle('server-launch', async (event, id, opts) => startBackend(id, opts || {}));
     ipcMain.handle('server-stop', async (event, id) => stop(id));
     ipcMain.handle('server-status', async (event, id) => status(id));
+    ipcMain.handle('server-probe', async (event, id, addr) => probeBackend(id, addr));
 }
 
 // Auto-start whichever backends the user enabled, reading paths/args straight

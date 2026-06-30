@@ -35,6 +35,8 @@
         "video_srv_stopped": "Stopped",
         "video_srv_no_path": "Set the launch script path first.",
         "video_srv_na": "Server launch is desktop-only.",
+        "video_ind_ready": "Ready",
+        "video_ind_off": "offline",
         "video_test": "Test",
         "video_testing": "Testing…",
         "video_connected": "ComfyUI connected ✓",
