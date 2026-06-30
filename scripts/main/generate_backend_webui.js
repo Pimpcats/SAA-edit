@@ -357,8 +357,9 @@ class WebUI {
 
                 response.on('end', () => {
                     if (response.statusCode !== 200) {
-                        console.error(`${CAT} HTTP error: ${response.statusCode}`);
-                        resolve(`Error: HTTP error ${response.statusCode}`);
+                        const errBody = Buffer.concat(chunks).toString('utf8');
+                        console.error(`${CAT} HTTP error: ${response.statusCode} - ${errBody.slice(0, 1500)}`);
+                        resolve(`Error: HTTP error ${response.statusCode}: ${errBody.slice(0, 400)}`);
                         return;
                     }
                     
@@ -516,8 +517,9 @@ class WebUI {
 
                 response.on('end', () => {
                     if (response.statusCode !== 200) {
-                        console.error(`${CAT} HTTP error: ${response.statusCode}`);
-                        resolve(`Error: HTTP error ${response.statusCode}`);
+                        const errBody = Buffer.concat(chunks).toString('utf8');
+                        console.error(`${CAT} HTTP error: ${response.statusCode} - ${errBody.slice(0, 1500)}`);
+                        resolve(`Error: HTTP error ${response.statusCode}: ${errBody.slice(0, 400)}`);
                         return;
                     }
                     
