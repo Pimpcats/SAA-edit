@@ -68,7 +68,7 @@ html, body {
 .model-settings-container, .add-lora-container, 
 .system-settings-container, .regional-condition-container,
 .jsonlist-container, .adetailer-container, .queue-container,
-.custom-toggles-container, .backgrounds-container, .character-editor-container, .lora-library-container, .video-tab-container
+.custom-toggles-container, .backgrounds-container, .character-editor-container, .lora-library-container, .video-tab-container, .local-servers-container
 {
     margin-top: 6px;
 }
@@ -76,6 +76,14 @@ html, body {
 /* LoRA Library panel */
 .lora-library-main.collapsed { display: none; }
 .video-tab-main.collapsed { display: none; }
+
+/* Local Servers section: scroll if the content is taller than the viewport */
+.local-servers-main.collapsed { display: none; }
+.local-servers-main {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 4px 8px 8px;
+}
 
 /* Video (ComfyUI) tab */
 .video-tab { display: flex; flex-direction: column; gap: 8px; padding: 6px; }

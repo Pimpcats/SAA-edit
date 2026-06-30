@@ -33,6 +33,7 @@ import { setupCharacterEditor } from './renderer/characterEditor.js';
 import { setupLoraLibrary } from './renderer/loraLibrary.js';
 import { setupVideoTab } from './renderer/videoTab.js';
 import { setupServerStatusIndicator } from './renderer/serverStatusIndicator.js';
+import { setupLocalServers } from './renderer/localServersTab.js';
 import { setupCharacterSwap } from './renderer/characterSwap.js';
 import { setupMultiCharEmphasisList } from './renderer/multiCharEmphasis.js';
 import { setupBarsMenu } from './renderer/barsMenu.js';
@@ -138,6 +139,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         characterEditor: setupCollapsed('character-editor', true),
         loraLibrary: setupCollapsed('lora-library', true),
         videoTab: setupCollapsed('video-tab', true),
+        localServers: setupCollapsed('local-servers', false),
     }
 }
 
@@ -516,6 +518,9 @@ async function init(){
         // LoRA library browser (civitai)
         globalThis.loraLibrary = setupLoraLibrary('lora-library-main');
         globalThis.videoTab = setupVideoTab('video-tab-main');
+
+        // Local backend server launcher (its own collapsible, scrollable section)
+        globalThis.localServers = setupLocalServers('local-servers-main');
 
         // Always-visible "Comfy Ready" / "A1111 Ready" status badges
         globalThis.serverStatusIndicator = setupServerStatusIndicator();

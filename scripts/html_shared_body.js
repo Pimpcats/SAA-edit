@@ -405,6 +405,18 @@ export const sharedBodyHTML = `
             <div class="video-tab-main"></div>
           </div>
 
+          <div class="local-servers-container">
+            <div class="local-servers-header">
+              <div></div>
+              <div></div>
+              <div class="local-servers-header-span">
+                <span id="local-servers-span">Local Servers (ComfyUI / A1111)</span>
+                <img id="local-servers-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="local-servers-main"></div>
+          </div>
+
         </div>
       </div>
     </div>`;

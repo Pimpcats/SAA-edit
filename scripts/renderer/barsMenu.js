@@ -17,6 +17,7 @@ const BARS = [
     ['character-editor-container', 'Add Character'],
     ['lora-library-container', 'LoRA Library'],
     ['video-tab-container', 'Video (ComfyUI)'],
+    ['local-servers-container', 'Local Servers'],
     ['image-infobox-container', 'Image Info']
 ];
 

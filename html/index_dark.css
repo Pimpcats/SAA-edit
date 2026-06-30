@@ -280,7 +280,7 @@ body {
 
 /* collapsed style */
 .image-infobox-header, .model-settings-header, .add-lora-header, .highres-fix-header, .refiner-header, 
-.controlnet-header, .regional-condition-header, .jsonlist-header, .adetailer-header, .queue-header, .custom-toggles-header, .backgrounds-header, .character-editor-header, .lora-library-header, .video-tab-header {
+.controlnet-header, .regional-condition-header, .jsonlist-header, .adetailer-header, .queue-header, .custom-toggles-header, .backgrounds-header, .character-editor-header, .lora-library-header, .video-tab-header, .local-servers-header {
     padding-right: 2px;
     display: flex;
     align-items: anchor-center;
@@ -320,7 +320,7 @@ body {
 
 .highres-fix-header-span, .refiner-header-span, .controlnet-header-span, .regional-condition-header-span, 
 .system-settings-header-span, .gallery-main-header-span, .gallery-thumb-header-span,
-.model-settings-span, .add-lora-span, .jsonlist-header-span, .adetailer-header-span, .queue-header-span, .custom-toggles-header-span, .backgrounds-header-span, .character-editor-header-span, .lora-library-header-span, .video-tab-header-span {
+.model-settings-span, .add-lora-span, .jsonlist-header-span, .adetailer-header-span, .queue-header-span, .custom-toggles-header-span, .backgrounds-header-span, .character-editor-header-span, .lora-library-header-span, .video-tab-header-span, .local-servers-header-span {
     display: flex;
     justify-self: flex-end;
 }
