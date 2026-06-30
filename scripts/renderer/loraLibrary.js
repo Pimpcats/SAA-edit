@@ -95,17 +95,25 @@ export function setupLoraLibrary(containerId) {
         setTimeout(() => badge.remove(), 1500);
     }
 
-    // ---- Grid of LoRA thumbnails ----
-    function groupByFolder(names) {
-        const groups = {};
+    // ---- Nested folder tree (mirrors the on-disk LoRA folder hierarchy) ----
+    function buildTree(names) {
+        const root = { folders: {}, items: [] };
         for (const name of names) {
             const parts = name.split(/[/\\]/);
-            const folder = parts.slice(0, -1).join('/') || '(root)';
-            (groups[folder] = groups[folder] || []).push({
-                name, label: parts[parts.length - 1].replace(/\.safetensors$/i, '')
-            });
+            const file = parts.pop();
+            let node = root;
+            for (const p of parts) {
+                if (!node.folders[p]) node.folders[p] = { folders: {}, items: [] };
+                node = node.folders[p];
+            }
+            node.items.push({ name, label: file.replace(/\.safetensors$/i, '') });
         }
-        return groups;
+        return root;
+    }
+    function countItems(node) {
+        let n = node.items.length;
+        for (const k of Object.keys(node.folders)) n += countItems(node.folders[k]);
+        return n;
     }
 
     let observer = null;
@@ -129,8 +137,11 @@ export function setupLoraLibrary(containerId) {
         const img = cell.querySelector('.lora-cell-img');
         const res = await thumbLocal(name).catch(() => null);
         if (res && res.ok && res.found && res.thumb) {
+            // If the image data fails to decode, fall back to the "no thumb" state
+            // instead of showing a broken-image icon.
+            img.onerror = () => { cell.classList.add('no-thumb'); };
+            img.onload = () => { cell.classList.remove('no-thumb'); };
             img.src = res.thumb;
-            cell.classList.remove('no-thumb');
         } else {
             cell.classList.add('no-thumb');
         }
@@ -202,6 +213,52 @@ export function setupLoraLibrary(containerId) {
         return false;
     }
 
+    function buildItemsGrid(items) {
+        const grid = document.createElement('div');
+        grid.className = 'lora-grid';
+        for (const it of items.slice().sort((a, b) => a.label.localeCompare(b.label))) {
+            grid.appendChild(buildCell(it));
+        }
+        return grid;
+    }
+
+    // Render a tree node: its sub-folders (collapsible, indented) then its own
+    // loose LoRAs. Folder contents are built lazily the first time it's opened, so
+    // collapsed folders cost nothing and there's far less to scroll.
+    function renderNode(node, parentEl, depth, expandAll) {
+        for (const fname of Object.keys(node.folders).sort((a, b) => a.localeCompare(b))) {
+            const child = node.folders[fname];
+            const sec = document.createElement('div');
+            sec.className = 'lora-tree-section';
+            const head = document.createElement('div');
+            head.className = 'lora-tree-folder';
+            head.style.paddingLeft = (depth * 16 + 4) + 'px';
+            const body = document.createElement('div');
+            body.className = 'lora-tree-body';
+            let open = !!expandAll;
+            const cnt = countItems(child);
+            const setHead = () => { head.textContent = `${open ? '▾' : '▸'} 📁 ${fname} (${cnt})`; };
+            const buildBody = () => {
+                if (body.dataset.built) return;
+                body.dataset.built = '1';
+                renderNode(child, body, depth + 1, expandAll);   // nested folders + items
+            };
+            if (open) buildBody();
+            body.style.display = open ? '' : 'none';
+            setHead();
+            head.addEventListener('click', () => {
+                open = !open;
+                if (open) buildBody();
+                body.style.display = open ? '' : 'none';
+                setHead();
+            });
+            sec.appendChild(head);
+            sec.appendChild(body);
+            parentEl.appendChild(sec);
+        }
+        if (node.items.length) parentEl.appendChild(buildItemsGrid(node.items));
+    }
+
     function buildGrid(filter) {
         results.innerHTML = '';
         if (observer) { observer.disconnect(); observer = null; }
@@ -212,26 +269,12 @@ export function setupLoraLibrary(containerId) {
                 || 'No LoRAs found. Set your WebUI model path in System Settings, connect, then click "Refresh list".');
             return;
         }
-        const groups = groupByFolder(names);
-        for (const folder of Object.keys(groups).sort((a, b) => a.localeCompare(b))) {
-            const items = groups[folder].sort((a, b) => a.label.localeCompare(b.label));
-            const sec = document.createElement('div');
-            sec.className = 'lora-grid-section';
-            const head = document.createElement('div');
-            head.className = 'lora-grid-folder';
-            const grid = document.createElement('div');
-            grid.className = 'lora-grid';
-            let open = true;
-            const setHead = () => { head.textContent = `${open ? '▾' : '▸'} ${folder} (${items.length})`; };
-            setHead();
-            head.addEventListener('click', () => { open = !open; grid.style.display = open ? '' : 'none'; setHead(); });
-            sec.appendChild(head);
-            for (const it of items) grid.appendChild(buildCell(it));
-            sec.appendChild(grid);
-            results.appendChild(sec);
-        }
+        // Collapsed tree by default (less scrolling); expand everything while
+        // filtering, or when the user toggled "Expand all", so matches are visible.
+        renderNode(buildTree(names), results, 0, !!f || expandAll);
         setStatus((getLang().lora_library_count || '{0} LoRAs found.').replace('{0}', names.length));
     }
+    let expandAll = false;
 
     // Download civitai thumbnails for every visible LoRA that has none locally.
     async function downloadAllMissing() {
@@ -314,9 +357,15 @@ export function setupLoraLibrary(containerId) {
     const dlAllBtn = document.createElement('button');
     dlAllBtn.className = 'lora-library-scan';
     dlAllBtn.textContent = getLang().lora_library_dl_missing || 'Download missing thumbs';
+    const expandBtn = document.createElement('button');
+    expandBtn.className = 'lora-library-scan';
+    const setExpandLabel = () => { expandBtn.textContent = expandAll ? (getLang().lora_library_collapse || '⊟ Collapse all') : (getLang().lora_library_expand || '⊞ Expand all'); };
+    expandBtn.addEventListener('click', () => { expandAll = !expandAll; setExpandLabel(); buildGrid(searchInput.value); });
+    setExpandLabel();
     controls.appendChild(searchInput);
     controls.appendChild(refreshBtn);
     controls.appendChild(dlAllBtn);
+    controls.appendChild(expandBtn);
 
     const status = document.createElement('div');
     status.className = 'lora-library-status-line';

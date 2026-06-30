@@ -221,6 +221,10 @@ html, body {
 .lora-grid-section { border-top: 1px solid #444; padding-top: 4px; }
 .lora-grid-folder { cursor: pointer; padding: 3px 4px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
 .lora-grid-folder:hover { background: rgba(255,255,255,0.08); }
+/* Nested folder tree */
+.lora-tree-folder { cursor: pointer; padding: 3px 4px; border-radius: 4px; font-weight: bold; white-space: nowrap; user-select: none; }
+.lora-tree-folder:hover { background: rgba(255,255,255,0.08); }
+.lora-tree-body { border-left: 1px solid rgba(255,255,255,0.10); margin-left: 9px; }
 .lora-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
