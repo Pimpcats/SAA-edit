@@ -613,14 +613,24 @@ export function setupVideoTab(containerId) {
     const presetBtn = document.createElement('button');
     presetBtn.className = 'video-btn';
     presetBtn.textContent = getLang().video_lora_preset || '★ AllInOne preset';
-    presetBtn.title = getLang().video_lora_preset_t || 'Fill the stack with the AllInOneV2 facefuck/blowjob LoRAs';
+    presetBtn.title = getLang().video_lora_preset_t || 'Fill the stack with the AllInOneV2 LoRAs (lightx2v speed + Wan22 ThroatV3 high/low)';
     presetBtn.addEventListener('click', () => {
+        // Resolve the actual installed filenames from the loaded LoRA list so it
+        // matches whatever subfolder/exact name you have; fall back to literals.
+        const findLora = (...needles) => {
+            const hit = loraList.find(n => { const l = String(n).toLowerCase(); return needles.every(nd => l.includes(nd)); });
+            return hit || null;
+        };
+        const speed = findLora('lightx2v', 'rank64') || findLora('lightx2v', 'distill')
+            || 'Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors';
+        const throatHigh = findLora('throat', 'high') || 'Wan22_ThroatV3_high.safetensors';
+        const throatLow = findLora('throat', 'low') || 'Wan22_ThroatV3_low.safetensors';
         loraStack = loraStack.filter(l => l.fromPosition);   // keep position-injected, replace manual
         loraStack.push(
-            { name: 'Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors', strength: 3.0, target: 'high', fromPosition: false },
-            { name: 'Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors', strength: 1.5, target: 'low', fromPosition: false },
-            { name: 'Wan22_RoughTwo_high_noise_1_lr7e5.safetensors-000003.safetensors', strength: 1.0, target: 'high', fromPosition: false },
-            { name: 'Wan22_RoughTwo_low_noise_1_lr7e5.safetensors-000003.safetensors', strength: 1.0, target: 'low', fromPosition: false }
+            { name: speed, strength: 3.0, target: 'high', fromPosition: false },
+            { name: speed, strength: 1.5, target: 'low', fromPosition: false },
+            { name: throatHigh, strength: 1.0, target: 'high', fromPosition: false },
+            { name: throatLow, strength: 1.0, target: 'low', fromPosition: false }
         );
         renderLoraStack(); persistLoraStack(); triggerPreflight();
     });
