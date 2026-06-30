@@ -327,7 +327,7 @@ body {
 
 #image-infobox-span, #gallery-main-span,
 #gallery-thumb-span, #highres-fix-span, #refiner-span, #controlnet-span, 
-#regional-condition-span, #add-lora-span, #model-settings-span, #system-settings-span, #jsonlist-span, #adetailer-span, #queue-span, #custom-toggles-span, #backgrounds-span, #character-editor-span, #lora-library-span {
+#regional-condition-span, #add-lora-span, #model-settings-span, #system-settings-span, #jsonlist-span, #adetailer-span, #queue-span, #custom-toggles-span, #backgrounds-span, #character-editor-span, #lora-library-span, #local-servers-span {
     order: 1;
     color: #4A403A; /* Dark gray-brown */
     padding-right: 2px;
@@ -522,7 +522,7 @@ body {
 .highres-fix-container, .refiner-container, .controlnet-container, .regional-condition-container, .model-settings-container, .add-lora-container, 
 .system-settings-container, .jsonlist-container, .adetailer-container, .queue-container, 
 .highres-fix-main, .refiner-main, .controlnet-main, .regional-condition-main, .model-settings-main, .add-lora-main, 
-.system-settings-main, .jsonlist-main, .adetailer-main, .queue-main, .custom-toggles-container, .custom-toggles-main, .backgrounds-container, .backgrounds-main, .character-editor-container, .character-editor-main, .lora-library-container, .lora-library-main, .video-tab-container, .video-tab-main {
+.system-settings-main, .jsonlist-main, .adetailer-main, .queue-main, .custom-toggles-container, .custom-toggles-main, .backgrounds-container, .backgrounds-main, .character-editor-container, .character-editor-main, .lora-library-container, .lora-library-main, .video-tab-container, .video-tab-main, .local-servers-container, .local-servers-main {
     padding: 1px;
     box-sizing: border-box;
     background: rgb(230, 227, 210); /* Warm off-white */
