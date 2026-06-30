@@ -492,18 +492,21 @@ export function setupVideoTab(containerId) {
         panel.style.flexDirection = 'column';
         panel.style.alignItems = 'stretch';
 
+        const baseTitle = (getLang().video_servers || 'Local servers (launch headless)').replace(/^[▸▾]\s*/, '');
         const toggle = document.createElement('button');
         toggle.className = 'video-btn';
-        toggle.textContent = getLang().video_servers || '▸ Local servers (launch headless)';
         const body = document.createElement('div');
-        body.style.display = 'none';
+        // Open by default so the launch-script fields are easy to find; the user
+        // can collapse it once configured.
+        body.style.display = 'flex';
         body.style.flexDirection = 'column';
         body.style.gap = '4px';
         body.style.marginTop = '4px';
+        toggle.textContent = '▾ ' + baseTitle;
         toggle.addEventListener('click', () => {
             const open = body.style.display === 'none';
             body.style.display = open ? 'flex' : 'none';
-            toggle.textContent = (open ? '▾' : '▸') + ' ' + (getLang().video_servers || 'Local servers (launch headless)').replace(/^[▸▾]\s*/, '');
+            toggle.textContent = (open ? '▾' : '▸') + ' ' + baseTitle;
         });
 
         const hint = document.createElement('div');
