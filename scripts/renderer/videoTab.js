@@ -187,6 +187,122 @@ export function setupVideoTab(containerId) {
     posPromptRow.appendChild(posPromptInput);
     container.appendChild(posPromptRow);
 
+    // ---- Describe image: run the local booru tagger on the loaded image and turn
+    // the tags into a natural-language description (WAN's umt5 encoder prefers
+    // prose). Detects the position and auto-selects it (loading its LoRAs).
+    const describeRow = document.createElement('div');
+    describeRow.className = 'video-row';
+    const describeBtn = document.createElement('button');
+    describeBtn.className = 'video-btn';
+    describeBtn.textContent = getLang().video_describe || '🔍 Describe image → prompt';
+    const taggerSel = document.createElement('select');
+    taggerSel.className = 'video-select';
+    taggerSel.style.maxWidth = '200px';
+    const describeStatus = document.createElement('span');
+    describeStatus.className = 'video-status';
+    describeRow.appendChild(describeBtn);
+    describeRow.appendChild(taggerSel);
+    describeRow.appendChild(describeStatus);
+    container.appendChild(describeRow);
+
+    (async () => {
+        const models = globalThis.api?.getImageTaggerModels ? await globalThis.api.getImageTaggerModels().catch(() => []) : [];
+        taggerSel.innerHTML = '';
+        if (!models || !models.length) {
+            const o = document.createElement('option');
+            o.value = ''; o.textContent = getLang().video_describe_no_model || '(no tagger model — add one to models/tagger)';
+            taggerSel.appendChild(o);
+        } else {
+            for (const m of models) { const o = document.createElement('option'); o.value = m; o.textContent = m; taggerSel.appendChild(o); }
+            const saved = globalThis.globalSettings.video_tagger_model;
+            taggerSel.value = (saved && models.includes(saved)) ? saved : models[0];
+        }
+    })();
+    taggerSel.addEventListener('change', () => { globalThis.globalSettings.video_tagger_model = taggerSel.value; });
+
+    // Map booru position/act tags -> a natural-language phrase, inferred motion,
+    // and a hint for which saved Position to auto-select.
+    function tagsToPrompt(tags) {
+        const set = new Set(tags.map(t => String(t).toLowerCase().trim().replace(/ /g, '_')));
+        const has = (...ts) => ts.some(t => set.has(t));
+        const girls = has('6+girls', '5girls', '4girls', '3girls') ? 'several women'
+            : set.has('2girls') ? 'two women' : set.has('1girl') ? 'a woman' : '';
+        const boys = set.has('2boys') ? 'two men' : set.has('1boy') ? 'a man' : '';
+        const subj = (girls && boys) ? `${girls} and ${boys}` : (girls || boys || 'the subject');
+
+        let act = '', motion = '', hint = '';
+        const A = (cond, phrase, mo, h) => { if (!act && cond) { act = phrase; motion = mo; hint = h; } };
+        A(has('irrumatio'), 'during rough face fucking, thrust deep into her mouth', 'fast rhythmic deep thrusting, head held', 'face fuck');
+        A(has('deepthroat'), 'during a deepthroat, taking him all the way down her throat', 'steady deep bobbing, throat bulging', 'deepthroat');
+        A(has('fellatio', 'oral'), 'during oral sex, sucking him', 'head bobbing back and forth steadily', 'oral');
+        A(has('paizuri'), 'during a titjob, her breasts wrapped around his shaft', 'breasts moving up and down', 'tit fuck');
+        A(has('reverse_cowgirl_position'), 'having sex in reverse cowgirl, riding him from behind', 'hips rocking up and down', 'reverse cowgirl');
+        A(has('cowgirl_position', 'girl_on_top', 'straddling'), 'having sex in the cowgirl position, riding on top', 'hips moving up and down, breasts bouncing', 'cowgirl');
+        A(has('doggystyle', 'all_fours', 'bent_over'), 'having sex in doggystyle, penetrated from behind', 'steady thrusting from behind, hips slapping', 'doggystyle');
+        A(has('missionary'), 'having sex in the missionary position', 'steady rhythmic thrusting', 'missionary');
+        A(has('anal', 'anal_object_insertion'), 'during anal sex', 'steady rhythmic thrusting', 'anal');
+        A(has('handjob'), 'during a handjob, stroking him', 'stroking up and down steadily', 'handjob');
+        A(has('sex', 'vaginal', 'penetration', 'spread_legs'), 'having sex, penetration', 'steady rhythmic thrusting', 'general');
+
+        const cum = has('cum', 'cumshot', 'ejaculation', 'cum_in_mouth', 'cum_on_body', 'facial', 'cum_in_pussy', 'overflow');
+        const desc = [];
+        if (has('nude', 'completely_nude')) desc.push('nude');
+        if (has('large_breasts', 'huge_breasts')) desc.push('large breasts');
+        if (has('pov')) desc.push('POV');
+
+        let s = act ? `${subj} ${act}` : subj;
+        if (motion) s += `, ${motion}`;
+        if (cum) s += ', ending in a cumshot';
+        if (desc.length) s += `, ${desc.join(', ')}`;
+        return { sentence: s, hint, raw: tags.join(', ') };
+    }
+
+    function selectPositionByHint(hint) {
+        if (!hint || hint === 'general') return false;
+        const sel = positionRow._select;
+        const h = hint.toLowerCase();
+        for (const o of sel.options) {
+            if (o.value !== '' && o.textContent.toLowerCase().includes(h)) {
+                sel.value = o.value;
+                if (positionRow._onSelect) positionRow._onSelect(positionRow._current());
+                globalThis.globalSettings.video_position = o.textContent;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    describeBtn.addEventListener('click', async () => {
+        if (!inputImage) { describeStatus.textContent = getLang().video_no_image || 'Load an image first.'; return; }
+        if (!taggerSel.value) { describeStatus.textContent = getLang().video_describe_no_model || 'No tagger model — add one to models/tagger.'; return; }
+        if (!globalThis.api?.runImageTagger) { describeStatus.textContent = getLang().video_describe_na || 'Tagger unavailable (desktop only).'; return; }
+        describeBtn.disabled = true;
+        describeStatus.textContent = getLang().video_describing || 'Analyzing image…';
+        let b64 = inputImage;
+        if (typeof b64 === 'string' && b64.startsWith('data:')) b64 = b64.split(',')[1];
+        const model = taggerSel.value;
+        const model_options = model.startsWith('wd-') ? 'General/Character'
+            : model.startsWith('cl_') ? 'General/Character/Artist/CopyRight'
+                : model.startsWith('camie-') ? 'General/Character/Artist/CopyRight' : 'N/A';
+        let tags = [];
+        try {
+            const res = await globalThis.api.runImageTagger({ image_input: b64, model_choice: model, gen_threshold: '0.5', char_threshold: '0.6', model_options });
+            tags = Array.isArray(res) ? res : (res ? String(res).split(',').map(s => s.trim()).filter(Boolean) : []);
+        } catch (err) {
+            describeBtn.disabled = false;
+            describeStatus.textContent = (getLang().video_describe_failed || 'Tagging failed: ') + err.message;
+            return;
+        }
+        describeBtn.disabled = false;
+        if (!tags.length) { describeStatus.textContent = getLang().video_describe_none || 'No tags detected.'; return; }
+        const { sentence, hint } = tagsToPrompt(tags);
+        const matched = selectPositionByHint(hint);
+        posPromptInput.value = sentence;
+        globalThis.globalSettings.video_pos_prompt = sentence;
+        triggerPreflight();
+        describeStatus.textContent = (getLang().video_described || 'Described ✓{0}').replace('{0}', matched ? ' (position auto-selected)' : '');
+    });
+
     const editRow = document.createElement('div');
     editRow.className = 'video-row';
     const editBtn = document.createElement('button');

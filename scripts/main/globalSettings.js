@@ -119,6 +119,7 @@ const defaultSettings = {
     "video_extra_lora_strength": 1.0,
     "video_extra_loras": [],
     "video_positions_folder": "Positions",
+    "video_tagger_model": "",
     "video_negative": "",
     "video_workflow_name": "",
     "video_motion": "",
