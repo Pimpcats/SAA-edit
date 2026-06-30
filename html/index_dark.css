@@ -333,6 +333,12 @@ body {
     padding-right: 2px;
 }
 
+/* Put the dropdown triangle on the RIGHT of the title for the collapsible
+   sections (match the Video tab) */
+#backgrounds-toggle, #character-editor-toggle, #lora-library-toggle, #custom-toggles-toggle, #local-servers-toggle {
+    order: 2;
+}
+
 #image-infobox-toggle, #gallery-main-toggle,
 #gallery-thumb-toggle, #highres-fix-toggle, #refiner-toggle, #controlnet-toggle, 
 #regional-condition-toggle, #model-settings-toggle, #add-lora-toggle, #jsonlist-toggle, 
