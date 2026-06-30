@@ -354,6 +354,10 @@ export function setupLoraLibrary(containerId) {
     const refreshBtn = document.createElement('button');
     refreshBtn.className = 'lora-library-scan';
     refreshBtn.textContent = getLang().lora_library_refresh || 'Refresh list';
+    const rescanBtn = document.createElement('button');
+    rescanBtn.className = 'lora-library-scan';
+    rescanBtn.textContent = getLang().lora_library_rescan || '🔄 Rescan folder';
+    rescanBtn.title = getLang().lora_library_rescan_title || 'Rescan the LoRA folder for files dropped in since launch';
     const dlAllBtn = document.createElement('button');
     dlAllBtn.className = 'lora-library-scan';
     dlAllBtn.textContent = getLang().lora_library_dl_missing || 'Download missing thumbs';
@@ -364,6 +368,7 @@ export function setupLoraLibrary(containerId) {
     setExpandLabel();
     controls.appendChild(searchInput);
     controls.appendChild(refreshBtn);
+    controls.appendChild(rescanBtn);
     controls.appendChild(dlAllBtn);
     controls.appendChild(expandBtn);
 
@@ -385,7 +390,32 @@ export function setupLoraLibrary(containerId) {
         buildGrid(searchInput.value);
     }
 
+    // Rescan the LoRA folder on disk (picks up files dropped in since launch),
+    // then refresh the list. This is the disk rescan the plain refresh skips.
+    async function rescanLoras() {
+        const SETTINGS = globalThis.globalSettings;
+        const prev = rescanBtn.textContent;
+        rescanBtn.disabled = true;
+        setStatus(getLang().lora_library_rescanning || 'Rescanning folder for new LoRAs…');
+        const args = [SETTINGS.model_path_comfyui, SETTINGS.model_path_webui, SETTINGS.model_filter_keyword, SETTINGS.model_filter, SETTINGS.search_modelinsubfolder];
+        try {
+            if (globalThis.inBrowser) {
+                await sendWebSocketMessage({ type: 'API', method: 'updateModelList', params: [args] });
+                globalThis.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
+            } else {
+                await globalThis.api.updateModelList(args);
+                globalThis.cachedFiles.loraList = await globalThis.api.getLoRAList(SETTINGS.api_interface);
+            }
+        } catch (err) {
+            console.error(CAT, 'rescan failed:', err);
+        }
+        rescanBtn.disabled = false;
+        rescanBtn.textContent = prev;
+        buildGrid(searchInput.value);
+    }
+
     refreshBtn.addEventListener('click', refreshLoraList);
+    rescanBtn.addEventListener('click', rescanLoras);
     dlAllBtn.addEventListener('click', downloadAllMissing);
 
     // LoRA folder override (for thumbnails) + a diagnose button. Point this at
