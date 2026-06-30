@@ -98,6 +98,7 @@ contextBridge.exposeInMainWorld('api', {
   civitaiTestKey: async (apiKey) => ipcRenderer.invoke('civitai-test-key', apiKey),
   getLoraThumb: async (loraName) => ipcRenderer.invoke('lora-thumb', loraName),
   downloadLoraThumb: async (loraName, apiKey) => ipcRenderer.invoke('lora-thumb-download', loraName, apiKey),
+  debugLoraThumb: async (loraName) => ipcRenderer.invoke('lora-thumb-debug', loraName),
   comfyVideoPing: async (addr) => ipcRenderer.invoke('comfy-video-ping', addr),
   comfyVideoModels: async (addr) => ipcRenderer.invoke('comfy-video-models', addr),
   comfyVideoPreflight: async (params) => ipcRenderer.invoke('comfy-video-preflight', params),

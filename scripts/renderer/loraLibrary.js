@@ -388,7 +388,55 @@ export function setupLoraLibrary(containerId) {
     refreshBtn.addEventListener('click', refreshLoraList);
     dlAllBtn.addEventListener('click', downloadAllMissing);
 
+    // LoRA folder override (for thumbnails) + a diagnose button. Point this at
+    // the folder that actually holds your .safetensors + .png files when the
+    // thumbnails won't show.
+    const folderRow = document.createElement('div');
+    folderRow.className = 'lora-library-key-row';
+    const folderInput = document.createElement('input');
+    folderInput.type = 'text';
+    folderInput.className = 'lora-library-key';
+    folderInput.placeholder = getLang().lora_library_folder || 'LoRA folder (where your .safetensors + .png live)';
+    folderInput.value = globalThis.globalSettings.lora_library_dir || '';
+    folderInput.addEventListener('change', () => {
+        globalThis.globalSettings.lora_library_dir = folderInput.value.trim();
+        results.querySelectorAll('.lora-cell').forEach(c => { delete c.dataset.loaded; });
+        buildGrid(searchInput.value);
+    });
+    const browseBtn = document.createElement('button');
+    browseBtn.className = 'lora-library-scan';
+    browseBtn.textContent = getLang().lora_library_browse || 'Browse…';
+    browseBtn.addEventListener('click', async () => {
+        if (!globalThis.api?.pickSaveFolder) return;
+        const res = await globalThis.api.pickSaveFolder().catch(() => null);
+        if (res?.ok && res.path) {
+            folderInput.value = res.path;
+            globalThis.globalSettings.lora_library_dir = res.path;
+            buildGrid(searchInput.value);
+        }
+    });
+    const diagBtn = document.createElement('button');
+    diagBtn.className = 'lora-library-scan';
+    diagBtn.textContent = getLang().lora_library_diagnose || '🔍 Diagnose';
+    diagBtn.addEventListener('click', async () => {
+        const names = loraNames();
+        if (!names.length) { setStatus('No LoRAs to diagnose.'); return; }
+        const dbg = globalThis.api?.debugLoraThumb ? await globalThis.api.debugLoraThumb(names[0]).catch(() => null) : null;
+        if (!dbg) { setStatus('Diagnose unavailable (desktop only).'); return; }
+        console.log(CAT, 'diagnose', dbg);
+        const dirs = dbg.dirsSearched.map(d => `${d.exists ? '✓' : '✗'} ${d.dir}`).join('\n');
+        const cands = dbg.thumbCandidates.map(c => `${c.exists ? '✓' : '✗'} ${c.name}`).join('\n');
+        setStatus(dbg.resolvedFile
+            ? (dbg.thumbPath ? 'Thumbnail found — it should display.' : 'File found, but no matching image sits next to it (see popup).')
+            : 'LoRA file NOT found on disk — set the LoRA folder above to where your .safetensors live.');
+        alert(`LoRA: ${dbg.loraName}\n\nFolders searched:\n${dirs || '(none)'}\n\nResolved file: ${dbg.resolvedFile || 'NOT FOUND'}\n\nThumbnail: ${dbg.thumbPath || 'NOT FOUND'}\nImage candidates checked next to it:\n${cands || '(file was not resolved, so none checked)'}`);
+    });
+    folderRow.appendChild(folderInput);
+    if (!globalThis.inBrowser && globalThis.api?.pickSaveFolder) folderRow.appendChild(browseBtn);
+    folderRow.appendChild(diagBtn);
+
     container.appendChild(keyRow);
+    container.appendChild(folderRow);
     container.appendChild(controls);
     container.appendChild(status);
     container.appendChild(results);

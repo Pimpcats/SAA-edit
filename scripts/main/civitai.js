@@ -34,7 +34,13 @@ function saveHashCache() {
 // LoRA list, so custom paths are honoured).
 function loraDirs() {
     const S = getGlobalSettings();
-    const dirs = getLoraBaseDirs(S.model_path_comfyui, S.model_path_webui);
+    const dirs = [];
+    // Explicit override first: point this straight at your LoRA folder when the
+    // model-path guesswork doesn't match where the files actually live.
+    if (S.lora_library_dir && String(S.lora_library_dir).trim()) {
+        dirs.push(String(S.lora_library_dir).trim());
+    }
+    dirs.push(...getLoraBaseDirs(S.model_path_comfyui, S.model_path_webui));
     // Extra fallbacks just in case.
     if (S.model_path_webui) {
         dirs.push(path.join(path.dirname(S.model_path_webui), 'Lora'));
@@ -44,6 +50,29 @@ function loraDirs() {
         dirs.push(path.join(path.dirname(S.model_path_comfyui), 'loras'));
     }
     return [...new Set(dirs)];
+}
+
+// Diagnostic: report exactly how a LoRA name resolves to a file + thumbnail, so
+// the UI can explain why a thumbnail isn't showing.
+function debugLoraThumb(loraName) {
+    const dirs = loraDirs();
+    const filePath = resolveLoraPath(loraName);
+    const out = {
+        loraName,
+        dirsSearched: dirs.map(d => ({ dir: d, exists: (() => { try { return fs.existsSync(d); } catch { return false; } })() })),
+        resolvedFile: filePath,
+        thumbPath: null,
+        thumbCandidates: []
+    };
+    if (filePath) {
+        const dir = path.dirname(filePath);
+        const base = path.basename(filePath).replace(/\.safetensors$/i, '');
+        for (const c of [`${base}.png`, `${base}.preview.png`, `${base}.jpg`, `${base}.preview.jpg`, `${base}.jpeg`, `${base}.webp`, `${base}.preview.webp`]) {
+            out.thumbCandidates.push({ name: c, exists: fs.existsSync(path.join(dir, c)) });
+        }
+        out.thumbPath = findLoraThumbPath(filePath);
+    }
+    return out;
 }
 
 function deepFind(dir, baseLower) {
@@ -235,6 +264,7 @@ export function setupCivitai() {
     });
     ipcMain.handle('lora-thumb', async (event, loraName) => getLoraThumb(loraName));
     ipcMain.handle('lora-thumb-download', async (event, loraName, apiKey) => downloadLoraThumb(loraName, apiKey));
+    ipcMain.handle('lora-thumb-debug', async (event, loraName) => debugLoraThumb(loraName));
 }
 
 export { civitaiLookupLora, civitaiTestKey, getLoraThumb, downloadLoraThumb };

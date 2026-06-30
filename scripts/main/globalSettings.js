@@ -101,6 +101,7 @@ const defaultSettings = {
     "background_toggles": [],
     "background_toggles_seeded": false,
     "civitai_api_key": "",
+    "lora_library_dir": "",
     "hidden_bars": ["highres-fix-container", "refiner-container", "controlnet-container", "adetailer-container", "regional-condition-container", "jsonlist-container", "custom-toggles-container", "model-settings-container", "system-settings-container"],
     "ui_background_image": "",
     "mira_itu_enable": false,
