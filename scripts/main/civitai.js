@@ -130,8 +130,8 @@ function hashFile(filePath) {
 function findLoraThumbPath(loraFilePath) {
     const dir = path.dirname(loraFilePath);
     const base = path.basename(loraFilePath).replace(/\.safetensors$/i, '');
-    // Common conventions: <base>.png and the civitai-helper <base>.preview.png,
-    // plus jpg/jpeg/webp variants.
+    // Fast path: the common exact conventions (<base>.png, civitai-helper
+    // <base>.preview.png, plus jpg/jpeg/webp).
     const candidates = [
         `${base}.png`, `${base}.preview.png`,
         `${base}.jpg`, `${base}.preview.jpg`,
@@ -142,6 +142,21 @@ function findLoraThumbPath(loraFilePath) {
         const p = path.join(dir, c);
         if (fs.existsSync(p)) return p;
     }
+    // Tolerant fallback: scan the folder for any image whose name relates to the
+    // LoRA's base (handles _preview/.1/version suffixes, prefixes, case, etc.).
+    try {
+        const imgExt = /\.(png|jpe?g|webp|gif)$/i;
+        const baseLower = base.toLowerCase();
+        const stems = fs.readdirSync(dir)
+            .filter(f => imgExt.test(f))
+            .map(f => ({ file: f, stem: f.replace(imgExt, '').toLowerCase() }));
+        let hit = stems.find(s => s.stem === baseLower)
+            || stems.find(s => s.stem === `${baseLower}.preview` || s.stem === `${baseLower}_preview`)
+            || stems.find(s => s.stem.startsWith(`${baseLower}.`) || s.stem.startsWith(`${baseLower}_`) || s.stem.startsWith(`${baseLower}-`))
+            || stems.find(s => s.stem.startsWith(baseLower))
+            || stems.find(s => s.stem.endsWith(baseLower));
+        if (hit) return path.join(dir, hit.file);
+    } catch { /* ignore */ }
     return null;
 }
 
