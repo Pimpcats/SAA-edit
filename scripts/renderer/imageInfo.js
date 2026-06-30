@@ -17,6 +17,28 @@ export function setupImageUploadOverlay() {
     const LANG = FILES.language[SETTINGS.language];
     
     function defaultUploadOverlaySize(){
+        // Anchor the drop overlay over the LEFT output panel (where images are
+        // produced) instead of centering it across the whole window. That keeps
+        // the right side — including the Video tab's input image — free to
+        // receive its own drag-and-drop.
+        const leftPanel = document.querySelector('#left');
+        if (leftPanel) {
+            const r = leftPanel.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) {
+                uploadOverlay.style.minWidth = '0';
+                uploadOverlay.style.minHeight = '0';
+                uploadOverlay.style.maxWidth = 'none';
+                uploadOverlay.style.maxHeight = 'none';
+                uploadOverlay.style.width = `${Math.round(r.width)}px`;
+                uploadOverlay.style.height = `${Math.round(r.height)}px`;
+                uploadOverlay.style.top = `${Math.round(r.top)}px`;
+                uploadOverlay.style.left = `${Math.round(r.left)}px`;
+                closeButton.style.display = 'none';
+                return;
+            }
+        }
+
+        // Fallback (left panel not found): original centered box.
         const width = globalThis.innerWidth;
         const height = globalThis.innerHeight;
         uploadOverlay.style.width = `${width*0.6}px`;
