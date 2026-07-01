@@ -641,22 +641,15 @@ export function setupVideoTab(containerId) {
     addLoraRow.appendChild(presetBtn);
     extraLoraWrap.appendChild(addLoraRow);
 
-    // Picking a Position injects its LoRA stack (tagged fromPosition), replacing
-    // any previously position-injected LoRAs but keeping your manual ones.
+    // Picking a Position loads ONLY its prompt description for now — it does not
+    // inject any LoRAs. (Any previously position-injected LoRAs are cleared so
+    // nothing stale lingers; your manually-added LoRAs are kept.)
     positionRow._onSelect = (entry) => {
         posPromptInput.value = entry ? (entry.prompt || '') : '';
         globalThis.globalSettings.video_pos_prompt = posPromptInput.value;
+        const before = loraStack.length;
         loraStack = loraStack.filter(l => !l.fromPosition);
-        const posLoras = entry && Array.isArray(entry.loras) ? entry.loras : [];
-        for (const pl of posLoras) {
-            if (pl && pl.name) loraStack.push({
-                name: pl.name,
-                strength: (typeof pl.strength === 'number') ? pl.strength : 1.0,
-                target: (pl.target === 'high' || pl.target === 'low') ? pl.target : 'both',
-                fromPosition: true
-            });
-        }
-        renderLoraStack();
+        if (loraStack.length !== before) renderLoraStack();
         triggerPreflight();
     };
 
