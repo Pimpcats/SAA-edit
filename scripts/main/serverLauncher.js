@@ -13,6 +13,44 @@ const isWin = process.platform === 'win32';
 
 // id -> { child, pid, command }
 const procs = new Map();
+// id -> the address we launched/reused it on, so we can also kill by port on
+// quit (covers reused/orphaned servers this app didn't spawn but is using).
+const backendAddrs = {};
+
+function portOf(addr) {
+    const m = String(addr || '').match(/:(\d{2,5})(?:\/|$)/);
+    return m ? m[1] : null;
+}
+
+// Kill whatever process is LISTENING on a TCP port (and its child tree). Used on
+// shutdown so a reused/orphaned server — one the app adopted rather than spawned
+// — is also taken down. Synchronous so it finishes before the app exits.
+function killByPort(port) {
+    if (!port) return;
+    try {
+        if (isWin) {
+            const out = spawnSync('netstat', ['-ano', '-p', 'tcp'], { encoding: 'utf8', windowsHide: true }).stdout || '';
+            const pids = new Set();
+            for (const line of out.split('\n')) {
+                const c = line.trim().split(/\s+/);
+                // proto local foreign state pid
+                if (c.length >= 5 && /LISTENING/i.test(c[3]) && c[1].endsWith(':' + port)) {
+                    if (/^\d+$/.test(c[4]) && c[4] !== '0') pids.add(c[4]);
+                }
+            }
+            for (const pid of pids) {
+                spawnSync('taskkill', ['/pid', pid, '/T', '/F'], { windowsHide: true });
+            }
+        } else {
+            const out = spawnSync('lsof', ['-ti', `tcp:${port}`], { encoding: 'utf8' }).stdout || '';
+            for (const pid of out.split('\n').map(s => s.trim()).filter(Boolean)) {
+                try { process.kill(Number(pid), 'SIGKILL'); } catch { /* gone */ }
+            }
+        }
+    } catch (err) {
+        console.error(CAT, `killByPort ${port} failed:`, err.message);
+    }
+}
 
 function isAlive(id) {
     const p = procs.get(id);
@@ -134,7 +172,11 @@ function stop(id) {
 }
 
 export function stopAllServers() {
+    // Kill processes this app spawned (whole cmd -> bat -> python tree)...
     for (const id of [...procs.keys()]) stop(id);
+    // ...and anything still listening on the backend ports we used this session
+    // (reused/orphaned instances the app adopted rather than spawned).
+    for (const addr of Object.values(backendAddrs)) killByPort(portOf(addr));
 }
 
 function status(id) {
@@ -153,6 +195,7 @@ async function startBackend(id, opts = {}) {
     const meta = BACKENDS[id] || { probe: '/' };
     const addr = opts.addr;
     const probePath = opts.probe || meta.probe;
+    if (addr) backendAddrs[id] = addr;   // remember for kill-by-port on quit
 
     // If a server is ALREADY answering on this address (a leftover instance from
     // a previous session, ComfyUI Desktop, or a manual launch), don't spawn a
