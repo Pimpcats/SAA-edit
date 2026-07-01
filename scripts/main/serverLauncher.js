@@ -4,7 +4,7 @@
 // The app never auto-opens a webpage; it just starts the server executable so the
 // API is reachable. Processes started here are tracked and killed on app quit.
 import { ipcMain } from 'electron';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
 import path from 'node:path';
 
@@ -116,10 +116,13 @@ function stop(id) {
     if (!p) return { ok: true, notRunning: true };
     try {
         if (isWin) {
-            spawn('taskkill', ['/pid', String(p.pid), '/T', '/F'], { windowsHide: true });
+            // Synchronous so the whole tree (cmd -> .bat -> python) is dead
+            // BEFORE the app exits — an async spawn can be abandoned when
+            // Electron quits, leaving the servers (and their consoles) running.
+            spawnSync('taskkill', ['/pid', String(p.pid), '/T', '/F'], { windowsHide: true });
         } else {
-            try { process.kill(-p.pid, 'SIGTERM'); }
-            catch { p.child.kill('SIGTERM'); }
+            try { process.kill(-p.pid, 'SIGKILL'); }
+            catch { try { p.child.kill('SIGKILL'); } catch { /* already gone */ } }
         }
     } catch (err) {
         console.error(CAT, `stop ${id} failed:`, err.message);
