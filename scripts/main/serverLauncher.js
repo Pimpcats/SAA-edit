@@ -148,11 +148,22 @@ const BACKENDS = {
 // auto-start path). Spawns, then waits until the API answers.
 async function startBackend(id, opts = {}) {
     const meta = BACKENDS[id] || { probe: '/' };
+    const addr = opts.addr;
+    const probePath = opts.probe || meta.probe;
+
+    // If a server is ALREADY answering on this address (a leftover instance from
+    // a previous session, ComfyUI Desktop, or a manual launch), don't spawn a
+    // duplicate — that just crashes with "port already in use". Use the existing
+    // one instead.
+    if (!isAlive(id) && addr && await probeOnce(probeUrl(addr, probePath), 2500)) {
+        console.log(CAT, `${id} already serving on ${addr} — reusing, not launching a duplicate`);
+        return { ok: true, ready: true, already: 'external', pid: null };
+    }
+
     const res = launch(id, opts);
     if (!res.ok) return { ...res, ready: false };
-    const addr = opts.addr;
     if (!addr) return { ...res, ready: false, note: 'no address to probe' };
-    const ready = await waitForReady(id, addr, opts.probe || meta.probe,
+    const ready = await waitForReady(id, addr, probePath,
         { timeoutMs: opts.timeoutMs || 180000 });
     return { ...res, ready };
 }
