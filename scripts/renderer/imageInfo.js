@@ -16,7 +16,29 @@ export function setupImageUploadOverlay() {
     const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
     
+    // Size/position the drop overlay to cover ONLY the left output panel (where
+    // images are produced), so it never spills onto the right side and the Video
+    // tab can receive its own drops. Returns true if it anchored successfully.
+    function anchorOverlayToLeftPanel(){
+        const leftPanel = document.querySelector('#left');
+        if (!leftPanel) return false;
+        const r = leftPanel.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) return false;
+        uploadOverlay.style.minWidth = '0';
+        uploadOverlay.style.minHeight = '0';
+        uploadOverlay.style.maxWidth = 'none';
+        uploadOverlay.style.maxHeight = 'none';
+        uploadOverlay.style.width = `${Math.round(r.width)}px`;
+        uploadOverlay.style.height = `${Math.round(r.height)}px`;
+        uploadOverlay.style.top = `${Math.round(r.top)}px`;
+        uploadOverlay.style.left = `${Math.round(r.left)}px`;
+        return true;
+    }
+
     function defaultUploadOverlaySize(){
+        if (anchorOverlayToLeftPanel()) { closeButton.style.display = 'none'; return; }
+
+        // Fallback (left panel not found): original centered box.
         const width = globalThis.innerWidth;
         const height = globalThis.innerHeight;
         uploadOverlay.style.width = `${width*0.6}px`;
@@ -32,6 +54,11 @@ export function setupImageUploadOverlay() {
     }
 
     function showImageUploadOverlaySize(imageWidth, imageHeight){
+        // Keep the dropped image inside the left panel; #preview-image is
+        // object-fit:contain so the photo scales to fit the panel.
+        if (anchorOverlayToLeftPanel()) { closeButton.style.display = 'flex'; return; }
+
+        // Fallback: size to the image and center in the window.
         uploadOverlay.style.width = `${imageWidth}px`;
         uploadOverlay.style.height = `${imageHeight}px`;
 
