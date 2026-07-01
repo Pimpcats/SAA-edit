@@ -206,9 +206,12 @@ export function setupVideoTab(containerId) {
     container.appendChild(describeRow);
 
     (async () => {
-        const models = globalThis.api?.getImageTaggerModels ? await globalThis.api.getImageTaggerModels().catch(() => []) : [];
+        const raw = globalThis.api?.getImageTaggerModels ? await globalThis.api.getImageTaggerModels().catch(() => []) : [];
+        // The backend returns ['none'] when models/tagger has no .onnx file — treat
+        // that as "no model" rather than a selectable (and failing) option.
+        const models = (raw || []).filter(m => m && String(m).toLowerCase() !== 'none');
         taggerSel.innerHTML = '';
-        if (!models || !models.length) {
+        if (!models.length) {
             const o = document.createElement('option');
             o.value = ''; o.textContent = getLang().video_describe_no_model || '(no tagger model — add one to models/tagger)';
             taggerSel.appendChild(o);

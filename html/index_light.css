@@ -528,7 +528,7 @@ body {
 .highres-fix-container, .refiner-container, .controlnet-container, .regional-condition-container, .model-settings-container, .add-lora-container, 
 .system-settings-container, .jsonlist-container, .adetailer-container, .queue-container, 
 .highres-fix-main, .refiner-main, .controlnet-main, .regional-condition-main, .model-settings-main, .add-lora-main, 
-.system-settings-main, .jsonlist-main, .adetailer-main, .queue-main, .custom-toggles-container, .custom-toggles-main, .backgrounds-container, .backgrounds-main, .character-editor-container, .character-editor-main, .lora-library-container, .lora-library-main, .video-tab-container, .video-tab-main, .local-servers-container, .local-servers-main {
+.system-settings-main, .jsonlist-main, .adetailer-main, .queue-main, .custom-toggles-container, .custom-toggles-main, .backgrounds-container, .backgrounds-main, .character-editor-container, .character-editor-main, .lora-library-container, .lora-library-main, .video-tab-container, .video-tab-main, .local-servers-container, .local-servers-main, .prompt-collapse-container, .prompt-collapse-main {
     padding: 1px;
     box-sizing: border-box;
     background: rgb(230, 227, 210); /* Warm off-white */
